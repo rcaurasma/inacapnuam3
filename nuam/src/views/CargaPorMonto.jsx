@@ -1,92 +1,51 @@
 import { useState } from "react";
-import Papa from "papaparse";
-
-import {
-  existeCalificacion,
-  crearCalificacion,
-  actualizarCalificacion,
-  obtenerCalificaciones
-} from "../services/CalificacionesService";
+import { leerCSV } from "../services/CSVReader";
+import { validarFila } from "../services/ValidadorCSV";
+import ModalCargaPorMonto from "../components/modals/ModalCargaPorMonto.jsx";
 
 export default function CargaPorMonto() {
-  const [archivo, setArchivo] = useState(null);
+  const [registros, setRegistros] = useState([]);
+  const [mostrarModal, setMostrarModal] = useState(false);
 
-  function handleFile(e) {
-    setArchivo(e.target.files[0]);
-  }
+  async function handleFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
 
-  async function procesar() {
-    if (!archivo) {
-      alert("Seleccione un archivo CSV primero.");
-      return;
-    }
+    // Leer CSV → retorna array de filas
+    const filas = await leerCSV(file);
 
-    Papa.parse(archivo, {
-      header: true,
-      skipEmptyLines: true,
-      complete: async (resultado) => {
-        const filas = resultado.data;
+    // Validar cada fila
+    const procesadas = filas.map((fila) => {
+      const { valido, errores } = validarFila(fila);
 
-        let procesados = 0;
-        let errores = 0;
-
-        for (const fila of filas) {
-          const rut = fila.rut?.trim();
-          const monto = fila.monto?.trim();
-
-          // Validación RUT
-          if (!rut) {
-            console.warn("Fila ignorada: RUT vacío", fila);
-            errores++;
-            continue;
-          }
-
-          // Validación de monto
-          const montoNum = Number(monto);
-          if (isNaN(montoNum)) {
-            console.warn("Monto inválido en fila:", fila);
-            errores++;
-            continue;
-          }
-
-          const existe = await existeCalificacion(rut);
-
-          if (existe) {
-            // Obtener registro actual para no perder otros campos
-            const todos = await obtenerCalificaciones();
-            const actual = todos.find(x => x.rut === rut);
-
-            await actualizarCalificacion(rut, {
-              ...actual,
-              monto: montoNum
-            });
-          } else {
-            // Crear registro mínimo
-            await crearCalificacion({
-              rut,
-              nombre: fila.nombre || "Sin nombre",
-              monto: montoNum,
-              fecha: fila.fecha || "01-01-2025",
-              factor: 0
-            });
-          }
-
-          procesados++;
-        }
-
-        alert(`Carga de montos completada.
-Procesados: ${procesados}
-Errores: ${errores}`);
-      }
+      return {
+        ...fila,
+        valido,
+        errores,
+      };
     });
+
+    setRegistros(procesadas);
+    setMostrarModal(true);
   }
 
   return (
     <div>
-      <h3>Carga Masiva de Montos</h3>
+      <h2>Carga Masiva por Monto</h2>
 
-      <input type="file" accept=".csv" onChange={handleFile} />
-      <button onClick={procesar}>Procesar CSV</button>
+      <input
+        type="file"
+        accept=".csv"
+        onChange={handleFile}
+        style={{ marginBottom: "20px" }}
+      />
+
+      {mostrarModal && (
+        <ModalCargaPorMonto
+          registros={registros}
+          onClose={() => setMostrarModal(false)}
+        />
+      )}
     </div>
   );
 }

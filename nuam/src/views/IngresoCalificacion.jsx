@@ -11,7 +11,9 @@ import {
   validarMercado,
   validarFormatoFactor,
   validarSumaFactores
-} from "../services/Validadores"; // <-- archivo nuevo que crearemos
+} from "../services/Validadores";
+
+import FormularioFactores from "../components/inputs/FormularioFactores.jsx";
 
 export default function IngresoCalificacion({ onCreated }) {
   const [form, setForm] = useState({
@@ -40,7 +42,6 @@ export default function IngresoCalificacion({ onCreated }) {
   }
 
   async function guardar() {
-
     // ==== VALIDACIONES ====
 
     if (!validarFecha(form.fecha)) {
@@ -121,19 +122,8 @@ export default function IngresoCalificacion({ onCreated }) {
       <input name="tipoSociedad" placeholder="Tipo (A/C)" value={form.tipoSociedad} onChange={handleChange} />
       <input name="mercado" placeholder="Mercado" value={form.mercado} onChange={handleChange} />
 
-      {/* FACTORES */}
-      {[...Array(12)].map((_, idx) => {
-        const n = idx + 8;
-        return (
-          <input
-            key={n}
-            name={`factor${n}`}
-            placeholder={`Factor ${n}`}
-            value={form[`factor${n}`]}
-            onChange={handleChange}
-          />
-        );
-      })}
+      {/* FACTORES (Componente separado) */}
+      <FormularioFactores form={form} handleChange={handleChange} />
 
       <button onClick={guardar}>Guardar</button>
     </div>

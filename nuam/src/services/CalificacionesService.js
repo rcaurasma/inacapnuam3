@@ -1,7 +1,7 @@
 import { initDB, saveDB } from "../database/db";
 
 // ----------------------------------------------
-// CREAR / INSERTAR NUEVA CALIFICACIÓN
+// CREAR
 // ----------------------------------------------
 export async function crearCalificacion(data) {
   const db = await initDB();
@@ -13,7 +13,7 @@ export async function crearCalificacion(data) {
       factor14, factor15, factor16, factor17, factor18, factor19
     )
     VALUES (?, ?, ?, ?, ?, ?,
-            ?, ?, ?, ?, ?, ?, 
+            ?, ?, ?, ?, ?, ?,
             ?, ?, ?, ?, ?, ?)
   `);
 
@@ -40,23 +40,22 @@ export async function crearCalificacion(data) {
   ]);
 
   stmt.free();
-
   saveDB(db);
 }
 
 // ----------------------------------------------
-// OBTENER LISTADO COMPLETO
+// OBTENER LISTADO
 // ----------------------------------------------
 export async function obtenerCalificaciones() {
   const db = await initDB();
 
-  const res = db.exec(`
-    SELECT * FROM calificaciones ORDER BY id DESC
-  `);
+  const res = db.exec(`SELECT * FROM calificaciones ORDER BY id DESC`);
 
   if (!res[0]) return [];
 
-  return res[0].values.map(row => ({
+  const rows = res[0].values;
+
+  return rows.map(row => ({
     id: row[0],
     rut: row[1],
     nombre: row[2],
@@ -76,37 +75,37 @@ export async function obtenerCalificaciones() {
     factor16: row[15],
     factor17: row[16],
     factor18: row[17],
-    factor19: row[18],
+    factor19: row[18]
   }));
 }
 
 // ----------------------------------------------
-// ELIMINAR POR ID
+// ELIMINAR
 // ----------------------------------------------
 export async function eliminarCalificacion(id) {
   const db = await initDB();
-
   db.run(`DELETE FROM calificaciones WHERE id = ${id}`);
-
   saveDB(db);
 }
 
 // ----------------------------------------------
-// ACTUALIZAR — REGLA: SE ACTUALIZA POR RUT
+// ACTUALIZAR
 // ----------------------------------------------
-export async function actualizarCalificacion(rut, data) {
+export async function actualizarCalificacion(id, data) {
   const db = await initDB();
 
   const stmt = db.prepare(`
     UPDATE calificaciones
-    SET 
-      nombre = ?, monto = ?, fecha = ?, tipoSociedad = ?, mercado = ?,
-      factor8 = ?, factor9 = ?, factor10 = ?, factor11 = ?, factor12 = ?, factor13 = ?,
-      factor14 = ?, factor15 = ?, factor16 = ?, factor17 = ?, factor18 = ?, factor19 = ?
-    WHERE rut = ?
+    SET rut = ?, nombre = ?, monto = ?, fecha = ?,
+        tipoSociedad = ?, mercado = ?,
+        factor8 = ?, factor9 = ?, factor10 = ?, factor11 = ?,
+        factor12 = ?, factor13 = ?, factor14 = ?, factor15 = ?,
+        factor16 = ?, factor17 = ?, factor18 = ?, factor19 = ?
+    WHERE id = ?
   `);
 
   stmt.run([
+    data.rut,
     data.nombre,
     parseFloat(data.monto),
     data.fecha,
@@ -126,23 +125,18 @@ export async function actualizarCalificacion(rut, data) {
     parseFloat(data.factor18 || 0),
     parseFloat(data.factor19 || 0),
 
-    rut,
+    id
   ]);
 
   stmt.free();
-
   saveDB(db);
 }
 
 // ----------------------------------------------
-// REGLA: VERIFICAR EXISTENCIA POR RUT
+// EXISTE POR RUT
 // ----------------------------------------------
 export async function existeCalificacion(rut) {
   const db = await initDB();
-
-  const res = db.exec(`
-    SELECT id FROM calificaciones WHERE rut = '${rut}'
-  `);
-
+  const res = db.exec(`SELECT id FROM calificaciones WHERE rut = '${rut}'`);
   return res.length > 0;
 }
