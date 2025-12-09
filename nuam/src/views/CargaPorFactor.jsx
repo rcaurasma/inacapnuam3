@@ -26,23 +26,41 @@ export default function CargaPorFactor() {
 
     Papa.parse(archivo, {
       header: true,
+      skipEmptyLines: true,          // ⬅️ evita filas vacías (CRÍTICO)
       dynamicTyping: false,
+
       complete: async (result) => {
         const registros = result.data;
 
         for (const reg of registros) {
-          // validar formato de factor
-          for (let i = 8; i <= 19; i++) {
-            const key = `factor${i}`;
-            if (reg[key] && !validarFormatoFactor(reg[key])) {
-              console.warn(`Factor inválido en fila`, reg);
-              continue;
-            }
+
+          // ⛔ Evita errores por filas vacías
+          if (!reg.rut || !reg.nombre || !reg.fecha || !reg.tipoSociedad || !reg.mercado) {
+            console.warn("Fila inválida:", reg);
+            continue;
           }
 
-          // validar suma de factores
+          // Validar formato de cada factor
+          for (let i = 8; i <= 19; i++) {
+            const key = `factor${i}`;
+
+            // Si viene vacío → lo dejamos en 0
+            if (!reg[key] || reg[key] === "") {
+              reg[key] = 0;
+              continue;
+            }
+
+            if (!validarFormatoFactor(reg[key])) {
+              console.warn(`Factor ${i} inválido:`, reg[key], reg);
+              continue;
+            }
+
+            reg[key] = parseFloat(reg[key]);
+          }
+
+          // Validar suma total
           if (!validarSumaFactores(reg)) {
-            console.warn(`Suma de factores excede 1`, reg);
+            console.warn("❌ Suma de factores excede 1 →", reg);
             continue;
           }
 

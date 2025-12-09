@@ -11,7 +11,7 @@ export default function CargaPorMonto() {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Leer CSV → retorna array de filas
+    // Leer CSV (array de filas)
     const filas = await leerCSV(file);
 
     // Validar cada fila
