@@ -1,9 +1,9 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import ListadoCalificaciones from "./views/ListadoCalificaciones.jsx";
+import AppRouter from "./router/AppRouter";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <ListadoCalificaciones />
+    <AppRouter />
   </React.StrictMode>
 );

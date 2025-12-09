@@ -27,19 +27,22 @@ db.run(`
     fecha TEXT NOT NULL,
     tipoSociedad TEXT,
     mercado TEXT,
-    corredor TEXT,
 
-    factor8 REAL, factor9 REAL, factor10 REAL, factor11 REAL,
-    factor12 REAL, factor13 REAL, factor14 REAL, factor15 REAL,
-    factor16 REAL, factor17 REAL, factor18 REAL, factor19 REAL,
-
-    factor20 REAL, factor21 REAL, factor22 REAL, factor23 REAL,
-    factor24 REAL, factor25 REAL, factor26 REAL, factor27 REAL,
-    factor28 REAL, factor29 REAL, factor30 REAL, factor31 REAL,
-    factor32 REAL, factor33 REAL, factor34 REAL, factor35 REAL,
-    factor36 REAL, factor37 REAL
+    factor8 REAL DEFAULT 0,
+    factor9 REAL DEFAULT 0,
+    factor10 REAL DEFAULT 0,
+    factor11 REAL DEFAULT 0,
+    factor12 REAL DEFAULT 0,
+    factor13 REAL DEFAULT 0,
+    factor14 REAL DEFAULT 0,
+    factor15 REAL DEFAULT 0,
+    factor16 REAL DEFAULT 0,
+    factor17 REAL DEFAULT 0,
+    factor18 REAL DEFAULT 0,
+    factor19 REAL DEFAULT 0
   );
 `);
+
 
 
     // Guardamos solo al crear la tabla
