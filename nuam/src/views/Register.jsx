@@ -5,7 +5,8 @@ export default function Register({ onSubmit }) {
   const [form, setForm] = useState({ name: "", email: "", password: "", role: "Corredor" });
 
   return (
-    <div className="auth-card">
+    <div className="auth-page">
+      <div className="auth-card">
       <h2>Crear cuenta</h2>
       <p>Configura acceso para nuevos usuarios.</p>
 
@@ -55,5 +56,6 @@ export default function Register({ onSubmit }) {
         </div>
       </div>
     </div>
+  </div>
   );
 }
