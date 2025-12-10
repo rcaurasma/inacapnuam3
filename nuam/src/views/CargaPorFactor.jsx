@@ -64,10 +64,10 @@ export default function CargaPorFactor() {
             continue;
           }
 
-          const existe = await existeCalificacion(reg.rut);
+          const calificacionId = await existeCalificacion(reg);
 
-          if (existe) {
-            await actualizarCalificacion(reg.rut, reg);
+          if (calificacionId) {
+            await actualizarCalificacion(calificacionId, reg);
           } else {
             await crearCalificacion(reg);
           }

@@ -127,14 +127,55 @@ export async function actualizarCalificacion(id, data) {
 }
 
 export async function existeCalificacionPorInstrumento(fechaPago, instrumento) {
+  if (!fechaPago || !instrumento) return null;
+
   const db = await initDB();
   const stmt = db.prepare(
     `SELECT id FROM calificaciones WHERE fechaPago = ? AND instrumento = ? LIMIT 1`
   );
   stmt.bind([fechaPago, instrumento]);
-  const exists = stmt.step();
+  const hasRow = stmt.step();
+  const id = hasRow ? stmt.getAsObject().id ?? null : null;
   stmt.free();
-  return exists;
+  return id;
+}
+
+export async function existeCalificacion(...args) {
+  if (args.length === 2) {
+    return await existeCalificacionPorInstrumento(args[0], args[1]);
+  }
+
+  const candidate = args[0];
+
+  if (candidate && typeof candidate === "object") {
+    const { fechaPago, instrumento, rut } = candidate;
+    if (fechaPago && instrumento) {
+      return await existeCalificacionPorInstrumento(fechaPago, instrumento);
+    }
+    if (instrumento || rut) {
+      return await buscarCalificacionPorInstrumento(instrumento || rut);
+    }
+  }
+
+  if (typeof candidate === "string" && candidate.trim() !== "") {
+    return await buscarCalificacionPorInstrumento(candidate.trim());
+  }
+
+  return null;
+}
+
+async function buscarCalificacionPorInstrumento(instrumento) {
+  if (!instrumento) return null;
+
+  const db = await initDB();
+  const stmt = db.prepare(
+    `SELECT id FROM calificaciones WHERE instrumento = ? LIMIT 1`
+  );
+  stmt.bind([instrumento]);
+  const hasRow = stmt.step();
+  const id = hasRow ? stmt.getAsObject().id ?? null : null;
+  stmt.free();
+  return id;
 }
 
 function safeParseJson(raw) {

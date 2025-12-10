@@ -1,11 +1,143 @@
-export default function ModalCargaPorFactor({ registros, onClose }) {
+import { useMemo, useState } from "react";
+import Papa from "papaparse";
+import {
+  crearCalificacion,
+  actualizarCalificacion,
+  existeCalificacion
+} from "../../services/CalificacionesService";
+import { validarFilaCalificacion } from "../../services/ValidadorCSV";
+
+function limpiarFila(row) {
+  const cleaned = {};
+  Object.keys(row || {}).forEach(key => {
+    const value = row[key];
+    const trimmedKey = typeof key === "string" ? key.trim() : key;
+    if (!trimmedKey) return;
+    cleaned[trimmedKey] = typeof value === "string" ? value.trim() : value;
+  });
+  return cleaned;
+}
+
+export default function ModalCargaPorFactor({ onClose }) {
+  const [registros, setRegistros] = useState([]);
+  const [mensaje, setMensaje] = useState("Selecciona un archivo CSV para comenzar.");
+  const [procesando, setProcesando] = useState(false);
+
+  function handleArchivo(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setProcesando(true);
+    setMensaje("Procesando archivo...");
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      dynamicTyping: false,
+      complete: result => {
+        const filas = (result.data || [])
+          .map(limpiarFila)
+          .filter(row => Object.values(row).some(value => String(value ?? "").trim() !== ""))
+          .map(row => {
+            const { valido, errores } = validarFilaCalificacion(row);
+            return { ...row, valido, errores };
+          });
+
+        setRegistros(filas);
+        setProcesando(false);
+        const validas = filas.filter(f => f.valido).length;
+        setMensaje(
+          filas.length
+            ? `Se cargaron ${filas.length} filas (${validas} válidas).`
+            : "El archivo no contiene filas válidas."
+        );
+      },
+      error: err => {
+        console.error(err);
+        setProcesando(false);
+        setRegistros([]);
+        setMensaje(`Error al leer el CSV: ${err.message}`);
+      }
+    });
+  }
+
+  const registrosValidos = useMemo(() => registros.filter(r => r.valido), [registros]);
+
+  async function confirmar() {
+    if (!registrosValidos.length) {
+      alert("No hay registros válidos para cargar.");
+      return;
+    }
+
+    try {
+      for (const fila of registrosValidos) {
+        const calificacionId = await existeCalificacion(fila);
+        if (calificacionId) {
+          await actualizarCalificacion(calificacionId, fila);
+        } else {
+          await crearCalificacion(fila);
+        }
+      }
+
+      alert(`Carga masiva por factor completada (${registrosValidos.length} registros).`);
+      onClose();
+    } catch (error) {
+      console.error(error);
+      alert("Ocurrió un error al guardar la carga masiva. Revisa la consola para más detalles.");
+    }
+  }
+
   return (
-    <div style={{ background: "#fff", padding: 20, border: "1px solid #ccc" }}>
-      <h3>Preview Carga Masiva por Factor</h3>
+    <div className="modal-overlay">
+      <div className="modal-container" style={{ maxWidth: "780px" }}>
+        <h3>Carga Masiva — Factores</h3>
 
-      <p>Este modal se implementará después.</p>
+        <div style={{ marginTop: 12 }}>
+          <input type="file" accept=".csv" onChange={handleArchivo} disabled={procesando} />
+          <div style={{ fontSize: 13, color: "#6b7280", marginTop: 4 }}>{mensaje}</div>
+        </div>
 
-      <button onClick={onClose}>Cerrar</button>
+        {registros.length === 0 ? (
+          <p style={{ marginTop: 20, color: "#4b5563" }}>
+            Debes cargar un archivo CSV con las columnas rut, nombre, fecha, monto, tipoSociedad, mercado y factores 8-19.
+          </p>
+        ) : (
+          <table className="infoext-table" style={{ marginTop: 16 }}>
+            <thead>
+              <tr>
+                <th>rut</th>
+                <th>nombre</th>
+                <th>fecha</th>
+                <th>monto</th>
+                <th>tipoSociedad</th>
+                <th>mercado</th>
+                <th>estado</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {registros.map((r, idx) => (
+                <tr key={idx} style={{ background: r.valido ? "#d7ffd7" : "#ffd7d7" }}>
+                  <td>{r.rut}</td>
+                  <td>{r.nombre}</td>
+                  <td>{r.fecha}</td>
+                  <td>{r.monto}</td>
+                  <td>{r.tipoSociedad}</td>
+                  <td>{r.mercado}</td>
+                  <td>{r.valido ? "OK" : r.errores?.join(", ")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        <div className="modal-actions">
+          <button className="btn primary" onClick={confirmar} disabled={!registrosValidos.length || procesando}>
+            Confirmar
+          </button>
+          <button className="btn" onClick={onClose} disabled={procesando}>Cancelar</button>
+        </div>
+      </div>
     </div>
   );
 }
