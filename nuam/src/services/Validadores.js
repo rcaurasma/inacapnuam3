@@ -31,14 +31,6 @@ export function validarMercado(x) {
   return /^[A-Za-z]{1,3}$/.test(x);
 }
 
-export async function existeCalificacionPorInstrumento(fechaPago, instrumento) {
-  const db = await initDB();
-  const res = db.exec(
-    `SELECT id FROM calificaciones WHERE fechaPago='${fechaPago}' AND instrumento='${instrumento}'`
-  );
-  return res.length > 0;
-}
-
 export function validarSecuenciaMayorA(valor) {
   return Number(valor || 0) > 10000;
 }
