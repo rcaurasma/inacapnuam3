@@ -1,20 +1,26 @@
 import initSqlJs from "sql.js";
 
 let db = null;
+const DB_VERSION = "2";
+const DB_KEY = "db_nuam";
+const DB_VERSION_KEY = "db_nuam_version";
 
 export async function initDB() {
   if (db) return db;
 
   const SQL = await initSqlJs({
-    locateFile: file => `https://sql.js.org/dist/${file}`
+    locateFile: (file) => `https://sql.js.org/dist/${file}`,
   });
 
-  const saved = localStorage.getItem("db_nuam");
+  const savedVersion = localStorage.getItem(DB_VERSION_KEY);
+  const saved = localStorage.getItem(DB_KEY);
 
-  if (saved) {
+  if (saved && savedVersion === DB_VERSION) {
     const uint8 = Uint8Array.from(JSON.parse(saved));
     db = new SQL.Database(uint8);
   } else {
+    // reset DB when schema changes
+    localStorage.removeItem(DB_KEY);
     db = new SQL.Database();
 
     // Crear tabla solo una vez (cuando no existe BD previa)
@@ -44,6 +50,7 @@ db.run(`
 
     // Guardamos solo al crear la tabla
     saveDB(db);
+    localStorage.setItem(DB_VERSION_KEY, DB_VERSION);
   }
 
   return db;
@@ -53,5 +60,6 @@ db.run(`
 export function saveDB(db) {
   const data = db.export();
   const bytes = Array.from(data);
-  localStorage.setItem("db_nuam", JSON.stringify(bytes));
+  localStorage.setItem(DB_KEY, JSON.stringify(bytes));
+  localStorage.setItem(DB_VERSION_KEY, DB_VERSION);
 }
