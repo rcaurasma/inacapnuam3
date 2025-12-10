@@ -1,7 +1,7 @@
 import initSqlJs from "sql.js";
 
 let db = null;
-const DB_VERSION = "2";
+const DB_VERSION = "3";
 const DB_KEY = "db_nuam";
 const DB_VERSION_KEY = "db_nuam_version";
 
@@ -24,28 +24,26 @@ export async function initDB() {
     db = new SQL.Database();
 
     // Crear tabla solo una vez (cuando no existe BD previa)
-db.run(`
-  CREATE TABLE IF NOT EXISTS calificaciones (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    rut TEXT NOT NULL,
-    nombre TEXT NOT NULL,
-    monto REAL NOT NULL,
-    fecha TEXT NOT NULL,
-    tipoSociedad TEXT,
-    mercado TEXT,
-    corredor TEXT,
-
-    factor8 REAL, factor9 REAL, factor10 REAL, factor11 REAL,
-    factor12 REAL, factor13 REAL, factor14 REAL, factor15 REAL,
-    factor16 REAL, factor17 REAL, factor18 REAL, factor19 REAL,
-
-    factor20 REAL, factor21 REAL, factor22 REAL, factor23 REAL,
-    factor24 REAL, factor25 REAL, factor26 REAL, factor27 REAL,
-    factor28 REAL, factor29 REAL, factor30 REAL, factor31 REAL,
-    factor32 REAL, factor33 REAL, factor34 REAL, factor35 REAL,
-    factor36 REAL, factor37 REAL
-  );
-`);
+    db.run(`
+      CREATE TABLE IF NOT EXISTS calificaciones (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        mercado TEXT,
+        instrumento TEXT,
+        anioComercial TEXT,
+        secuenciaEvento TEXT,
+        numeroDividendo TEXT,
+        valorHistorico REAL,
+        fechaPago TEXT,
+        descripcion TEXT,
+        origen TEXT,
+        fuente TEXT,
+        acogidoIsfut INTEGER,
+        factorsJson TEXT,
+        montosJson TEXT,
+        createdAt TEXT,
+        updatedAt TEXT
+      );
+    `);
 
 
     // Guardamos solo al crear la tabla

@@ -83,7 +83,9 @@ export async function obtenerCalificaciones() {
 // ----------------------------------------------
 export async function eliminarCalificacion(id) {
   const db = await initDB();
-  db.run(`DELETE FROM calificaciones WHERE id = ${id}`);
+  const stmt = db.prepare(`DELETE FROM calificaciones WHERE id = ?`);
+  stmt.run([id]);
+  stmt.free();
   saveDB(db);
 }
 
@@ -126,10 +128,13 @@ export async function actualizarCalificacion(id, data) {
 
 export async function existeCalificacionPorInstrumento(fechaPago, instrumento) {
   const db = await initDB();
-  const res = db.exec(
-    `SELECT id FROM calificaciones WHERE fechaPago = '${fechaPago}' AND instrumento = '${instrumento}' LIMIT 1`
+  const stmt = db.prepare(
+    `SELECT id FROM calificaciones WHERE fechaPago = ? AND instrumento = ? LIMIT 1`
   );
-  return Boolean(res.length);
+  stmt.bind([fechaPago, instrumento]);
+  const exists = stmt.step();
+  stmt.free();
+  return exists;
 }
 
 function safeParseJson(raw) {

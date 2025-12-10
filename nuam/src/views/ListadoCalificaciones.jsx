@@ -46,7 +46,7 @@ export default function ListadoCalificaciones() {
 
       {lista.map(item => (
         <div key={item.id} style={{ marginTop: "10px" }}>
-          <strong>{item.nombre}</strong> — {item.rut} — ${item.monto}
+          <strong>{item.instrumento}</strong>  {item.mercado}  {item.fechaPago}  ${item.valorHistorico}
 
           <button
             onClick={() => setEditId(item.id)}
