@@ -8,35 +8,42 @@ export async function crearCalificacion(data) {
 
   const stmt = db.prepare(`
     INSERT INTO calificaciones (
-      rut, nombre, monto, fecha, tipoSociedad, mercado,
-      factor8, factor9, factor10, factor11, factor12, factor13,
-      factor14, factor15, factor16, factor17, factor18, factor19
-    )
-    VALUES (?, ?, ?, ?, ?, ?,
-            ?, ?, ?, ?, ?, ?,
-            ?, ?, ?, ?, ?, ?)
+      mercado,
+      instrumento,
+      anioComercial,
+      secuenciaEvento,
+      numeroDividendo,
+      valorHistorico,
+      fechaPago,
+      descripcion,
+      origen,
+      fuente,
+      acogidoIsfut,
+      factorsJson,
+      montosJson,
+      createdAt,
+      updatedAt
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
-  stmt.run([
-    data.rut,
-    data.nombre,
-    parseFloat(data.monto),
-    data.fecha,
-    data.tipoSociedad,
-    data.mercado,
+  const now = new Date().toISOString();
 
-    parseFloat(data.factor8 || 0),
-    parseFloat(data.factor9 || 0),
-    parseFloat(data.factor10 || 0),
-    parseFloat(data.factor11 || 0),
-    parseFloat(data.factor12 || 0),
-    parseFloat(data.factor13 || 0),
-    parseFloat(data.factor14 || 0),
-    parseFloat(data.factor15 || 0),
-    parseFloat(data.factor16 || 0),
-    parseFloat(data.factor17 || 0),
-    parseFloat(data.factor18 || 0),
-    parseFloat(data.factor19 || 0),
+  stmt.run([
+    data.mercado || null,
+    data.instrumento || null,
+    data.anioComercial || null,
+    data.secuenciaEvento || null,
+    data.numeroDividendo || null,
+    data.valorHistorico != null ? Number(data.valorHistorico) : null,
+    data.fechaPago || null,
+    data.descripcion || "",
+    data.origen || "Operador",
+    data.fuente || "Manual",
+    data.acogidoIsfut ? 1 : 0,
+    JSON.stringify(data.factors || []),
+    JSON.stringify(data.montos || []),
+    now,
+    now,
   ]);
 
   stmt.free();
@@ -48,34 +55,26 @@ export async function crearCalificacion(data) {
 // ----------------------------------------------
 export async function obtenerCalificaciones() {
   const db = await initDB();
-
   const res = db.exec(`SELECT * FROM calificaciones ORDER BY id DESC`);
-
   if (!res[0]) return [];
 
-  const rows = res[0].values;
-
-  return rows.map(row => ({
+  return res[0].values.map(row => ({
     id: row[0],
-    rut: row[1],
-    nombre: row[2],
-    monto: row[3],
-    fecha: row[4],
-    tipoSociedad: row[5],
-    mercado: row[6],
-
-    factor8: row[7],
-    factor9: row[8],
-    factor10: row[9],
-    factor11: row[10],
-    factor12: row[11],
-    factor13: row[12],
-    factor14: row[13],
-    factor15: row[14],
-    factor16: row[15],
-    factor17: row[16],
-    factor18: row[17],
-    factor19: row[18]
+    mercado: row[1],
+    instrumento: row[2],
+    anioComercial: row[3],
+    secuenciaEvento: row[4],
+    numeroDividendo: row[5],
+    valorHistorico: row[6],
+    fechaPago: row[7],
+    descripcion: row[8],
+    origen: row[9],
+    fuente: row[10],
+    acogidoIsfut: Boolean(row[11]),
+    factors: safeParseJson(row[12]),
+    montos: safeParseJson(row[13]),
+    createdAt: row[14],
+    updatedAt: row[15],
   }));
 }
 
@@ -96,47 +95,47 @@ export async function actualizarCalificacion(id, data) {
 
   const stmt = db.prepare(`
     UPDATE calificaciones
-    SET rut = ?, nombre = ?, monto = ?, fecha = ?,
-        tipoSociedad = ?, mercado = ?,
-        factor8 = ?, factor9 = ?, factor10 = ?, factor11 = ?,
-        factor12 = ?, factor13 = ?, factor14 = ?, factor15 = ?,
-        factor16 = ?, factor17 = ?, factor18 = ?, factor19 = ?
+    SET mercado = ?, instrumento = ?, anioComercial = ?, secuenciaEvento = ?,
+        numeroDividendo = ?, valorHistorico = ?, fechaPago = ?, descripcion = ?,
+        origen = ?, fuente = ?, acogidoIsfut = ?, factorsJson = ?, montosJson = ?,
+        updatedAt = ?
     WHERE id = ?
   `);
 
   stmt.run([
-    data.rut,
-    data.nombre,
-    parseFloat(data.monto),
-    data.fecha,
-    data.tipoSociedad,
-    data.mercado,
-
-    parseFloat(data.factor8 || 0),
-    parseFloat(data.factor9 || 0),
-    parseFloat(data.factor10 || 0),
-    parseFloat(data.factor11 || 0),
-    parseFloat(data.factor12 || 0),
-    parseFloat(data.factor13 || 0),
-    parseFloat(data.factor14 || 0),
-    parseFloat(data.factor15 || 0),
-    parseFloat(data.factor16 || 0),
-    parseFloat(data.factor17 || 0),
-    parseFloat(data.factor18 || 0),
-    parseFloat(data.factor19 || 0),
-
-    id
+    data.mercado || null,
+    data.instrumento || null,
+    data.anioComercial || null,
+    data.secuenciaEvento || null,
+    data.numeroDividendo || null,
+    data.valorHistorico != null ? Number(data.valorHistorico) : null,
+    data.fechaPago || null,
+    data.descripcion || "",
+    data.origen || "Operador",
+    data.fuente || "Manual",
+    data.acogidoIsfut ? 1 : 0,
+    JSON.stringify(data.factors || []),
+    JSON.stringify(data.montos || []),
+    new Date().toISOString(),
+    id,
   ]);
 
   stmt.free();
   saveDB(db);
 }
 
-// ----------------------------------------------
-// EXISTE POR RUT
-// ----------------------------------------------
-export async function existeCalificacion(rut) {
+export async function existeCalificacionPorInstrumento(fechaPago, instrumento) {
   const db = await initDB();
-  const res = db.exec(`SELECT id FROM calificaciones WHERE rut = '${rut}'`);
-  return res.length > 0;
+  const res = db.exec(
+    `SELECT id FROM calificaciones WHERE fechaPago = '${fechaPago}' AND instrumento = '${instrumento}' LIMIT 1`
+  );
+  return Boolean(res.length);
+}
+
+function safeParseJson(raw) {
+  try {
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
 }
