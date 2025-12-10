@@ -1,166 +1,140 @@
 import { useState } from "react";
-import Papa from "papaparse";
-import {
-  crearInfoExterna,
-  actualizarInfoExterna,
-  existeInfoExternaPorInstrumento,
-} from "../../services/InformacionExternaService";
 
-import {
-  validarFormatoFactor,
-  validarSumaFactores,
-} from "../../services/Validadores";
+import { leerCSV } from "../../services/CSVReader";
+import { validarFilaInfoExterna } from "../../services/ValidadorCSV";
+import { crearInfoExterna } from "../../services/InformacionExternaService";
+import { COLUMN_MAPPING } from "../../constants/columnMapping_TEMP";
 
 export default function ModalCargaMasivaInfoExterna({ onClose, onSuccess }) {
+  const [archivo, setArchivo] = useState(null);
   const [preview, setPreview] = useState([]);
-  const [errores, setErrores] = useState([]);
 
   function handleFile(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+    setArchivo(e.target.files[0]);
+  }
 
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (result) => procesarCSV(result.data),
+  async function procesarArchivo() {
+    if (!archivo) {
+      alert("Seleccione un archivo CSV antes de procesar.");
+      return;
+    }
+
+    const registrosCrudos = await leerCSV(archivo);
+
+    const registrosProcesados = registrosCrudos.map((fila) => {
+      const obj = {};
+
+      // Mapear columnas del CSV → nombres internos
+      for (const key in COLUMN_MAPPING) {
+        const nombreColumnaCSV = COLUMN_MAPPING[key];
+        obj[key] = fila[nombreColumnaCSV] ?? "";
+      }
+
+      // Validar fila
+      const { valido, errores } = validarFilaInfoExterna(obj);
+
+      return {
+        data: obj,
+        valido,
+        errores,
+      };
     });
+
+    setPreview(registrosProcesados);
   }
 
-  function procesarCSV(filas) {
-    const erroresTemp = [];
-    const previewTemp = [];
+  async function confirmarCarga() {
+    const validos = preview.filter((p) => p.valido);
 
-    for (let index = 0; index < filas.length; index++) {
-      const fila = filas[index];
-
-      // validar factores 8–37
-      let factoresValidos = true;
-
-      for (let i = 8; i <= 37; i++) {
-        const key = `factor${i}`;
-
-        if (fila[key] && !validarFormatoFactor(fila[key])) {
-          factoresValidos = false;
-          erroresTemp.push({
-            fila: index + 1,
-            error: `Factor ${i} tiene formato inválido`,
-          });
-        }
-      }
-
-      // validar suma total
-      if (!validarSumaFactores(fila)) {
-        erroresTemp.push({
-          fila: index + 1,
-          error: `La suma de factores (8–37) supera 1`,
-        });
-      }
-
-      previewTemp.push({
-        ...fila,
-        valido: factoresValidos,
-      });
+    if (validos.length === 0) {
+      alert("No hay registros válidos para cargar.");
+      return;
     }
 
-    setPreview(previewTemp);
-    setErrores(erroresTemp);
-  }
-
-  async function procesarCarga() {
-    let agregados = 0;
-    let actualizados = 0;
-
-    for (const fila of preview) {
-      if (!fila.valido) continue;
-
-      const existe = await existeInfoExternaPorInstrumento(fila.instrumento);
-
-      if (existe) {
-        await actualizarInfoExterna(existe, fila);
-        actualizados++;
-      } else {
-        await crearInfoExterna(fila);
-        agregados++;
-      }
+    for (const fila of validos) {
+      await crearInfoExterna(fila.data);
     }
 
-    alert(
-      `Carga completada:\n${agregados} nuevos registros\n${actualizados} actualizados`
-    );
-
+    alert(`Carga completada. Se ingresaron ${validos.length} registros.`);
     onSuccess();
-    onClose();
   }
 
   return (
-    <div className="modal">
-      <div className="modal-content" style={{ width: "90%", maxHeight: "90vh", overflowY: "auto" }}>
-        <h2>Carga Masiva – Información Externa</h2>
+    <div
+      style={{
+        background: "rgba(0,0,0,0.5)",
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        zIndex: 9999,
+      }}
+    >
+      <div
+        style={{
+          background: "white",
+          padding: 20,
+          borderRadius: 6,
+          width: "85%",
+          maxHeight: "85vh",
+          overflowY: "auto",
+        }}
+      >
+        <h2>Carga Masiva de Información Externa</h2>
 
         <input type="file" accept=".csv" onChange={handleFile} />
+        <button onClick={procesarArchivo}>Procesar Archivo</button>
+        <button onClick={onClose} style={{ marginLeft: 10 }}>
+          Cerrar
+        </button>
 
-        {errores.length > 0 && (
-          <div style={{ marginTop: "10px", color: "red" }}>
-            <h4>Errores detectados:</h4>
-            {errores.map((err, idx) => (
-              <div key={idx}>Fila {err.fila}: {err.error}</div>
-            ))}
-          </div>
+        <hr />
+
+        <h3>Vista Previa</h3>
+
+        {preview.length === 0 && <p>No hay datos procesados.</p>}
+
+        {preview.length > 0 && (
+          <table border="1" cellPadding="5" style={{ width: "100%" }}>
+            <thead>
+              <tr>
+                <th>Estado</th>
+                <th>Ejercicio</th>
+                <th>Instrumento</th>
+                <th>Fecha Pago</th>
+                <th>Descripción</th>
+                <th>Errores</th>
+              </tr>
+            </thead>
+            <tbody>
+              {preview.map((p, index) => (
+                <tr
+                  key={index}
+                  style={{
+                    background: p.valido ? "#d6ffd6" : "#ffd6d6",
+                  }}
+                >
+                  <td>{p.valido ? "OK" : "ERROR"}</td>
+                  <td>{p.data.ejercicio}</td>
+                  <td>{p.data.instrumento}</td>
+                  <td>{p.data.fechaPago}</td>
+                  <td>{p.data.descripcionDividendo}</td>
+                  <td>{p.errores.join(", ")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
 
         {preview.length > 0 && (
-          <>
-            <h4>Previsualización ({preview.length} filas)</h4>
-            <div style={{ overflowX: "scroll", border: "1px solid #ccc", padding: "10px" }}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Ejercicio</th>
-                    <th>Instrumento</th>
-                    <th>Fecha Pago</th>
-                    <th>Descripción</th>
-                    <th>Secuencia</th>
-                    <th>Isfut</th>
-                    <th>Origen</th>
-                    <th>Factor Act.</th>
-                    {Array.from({ length: 30 }, (_, i) => (
-                      <th key={i}>Factor {i + 8}</th>
-                    ))}
-                    <th>Valido</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {preview.map((p, idx) => (
-                    <tr key={idx} style={{ background: !p.valido ? "#ffbbbb" : "white" }}>
-                      <td>{p.ejercicio}</td>
-                      <td>{p.instrumento}</td>
-                      <td>{p.fechaPago}</td>
-                      <td>{p.descripcionDividendo}</td>
-                      <td>{p.secuenciaEvento}</td>
-                      <td>{p.acogidoIsfut}</td>
-                      <td>{p.origen}</td>
-                      <td>{p.factorActualizacion}</td>
-
-                      {Array.from({ length: 30 }, (_, i) => (
-                        <td key={i}>{p[`factor${i + 8}`]}</td>
-                      ))}
-
-                      <td>{p.valido ? "✔" : "❌"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </>
+          <div style={{ marginTop: 20 }}>
+            <button onClick={confirmarCarga}>Confirmar Carga</button>
+          </div>
         )}
-
-        <div style={{ marginTop: "20px" }}>
-          <button onClick={procesarCarga}>Procesar</button>
-          <button onClick={onClose} style={{ marginLeft: "10px" }}>
-            Cancelar
-          </button>
-        </div>
       </div>
     </div>
   );

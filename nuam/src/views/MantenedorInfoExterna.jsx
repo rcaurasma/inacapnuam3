@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+
 import {
   obtenerInfoExterna,
   crearInfoExterna,
@@ -8,42 +9,19 @@ import {
 
 import ModalCargaMasivaInfoExterna from "../components/modals/ModalCargaMasivaInfoExterna";
 
-// === LISTA REAL DE FACTORES (según Excel de homologación proporcionado) ===
-// Puedes reemplazar estos nombres si tu archivo final cambia.
-const FACTOR_HEADERS = [
-  "Ajuste capital",            // F8
-  "Renta devengada",           // F9
-  "Renta percibida",           // F10
-  "Corrección monetaria",      // F11
-  "Gasto rechazado",           // F12
-  "Crédito total",             // F13
-  "Crédito parcial",           // F14
-  "Capital propio",            // F15
-  "Valor libro",               // F16
-  "Utilidad repartida",        // F17
-  "Diferencia tributaria",     // F18
-  "Revalorización",            // F19
-  "Retención",                 // F20
-  "Base exenta",               // F21
-  "Interés",                   // F22
-  "Ganancia",                  // F23
-  "Pérdida",                   // F24
-  "Rebaja",                    // F25
-  "Renta afecta",              // F26
-  "Renta no afecta",           // F27
-  "Monto reajustado",          // F28
-  "Renta presunta",            // F29
-  "Crédito por impuesto",      // F30
-  "Crédito externo",           // F31
-  "IDPC base",                 // F32
-  "IDPC crédito",              // F33
-  "Factor adicional",          // F34
-  "Reserva",                   // F35
-  "Impto sustitutivo",         // F36
-  "Diferencia cambio"          // F37
-];
+// Importar constantes
+import { MARKETS } from "../constants/markets";
+import { ORIGINS } from "../constants/origins";
+import { FACTOR_HEADERS, DEFAULT_INFO_EXTERNA } from "../constants/defaultInfoExterna";
+
+// TOTAL FACTORES = columnas factor8 a factor37 (30 factores)
+const TOTAL_FACTORES = 30;
 
 export default function MantenedorInfoExterna() {
+
+  // -----------------------------
+  // ESTADOS
+  // -----------------------------
   const [filtro, setFiltro] = useState({
     mercado: "",
     origen: "",
@@ -51,24 +29,19 @@ export default function MantenedorInfoExterna() {
   });
 
   const [lista, setLista] = useState([]);
-
   const [seleccion, setSeleccion] = useState(null);
 
   const [mostrarModalCarga, setMostrarModalCarga] = useState(false);
 
-  const [form, setForm] = useState(() => ({
-    ejercicio: "",
-    instrumento: "",
-    fechaPago: "",
-    descripcionDividendo: "",
-    secuenciaEvento: "",
-    acogidoIsfut: "",
-    origen: "",
-    mercado: "",
-    factorActualizacion: "",
-    ...Object.fromEntries([...Array(30)].map((_, i) => [`factor${i + 8}`, ""])),
-  }));
+  const initialForm = () => ({
+    ...DEFAULT_INFO_EXTERNA
+  });
 
+  const [form, setForm] = useState(initialForm);
+
+  // -----------------------------
+  // CARGA INICIAL
+  // -----------------------------
   useEffect(() => {
     cargar();
   }, []);
@@ -78,6 +51,9 @@ export default function MantenedorInfoExterna() {
     setLista(data);
   }
 
+  // -----------------------------
+  // MANEJO DE FORMULARIOS
+  // -----------------------------
   function handleFiltro(e) {
     setFiltro({ ...filtro, [e.target.name]: e.target.value });
   }
@@ -87,31 +63,24 @@ export default function MantenedorInfoExterna() {
   }
 
   function limpiarFiltros() {
-    setFiltro({
-      mercado: "",
-      origen: "",
-      ejercicio: "",
-    });
+    setFiltro({ mercado: "", origen: "", ejercicio: "" });
     cargar();
   }
 
   function limpiarFormulario() {
-    setForm({
-      ejercicio: "",
-      instrumento: "",
-      fechaPago: "",
-      descripcionDividendo: "",
-      secuenciaEvento: "",
-      acogidoIsfut: "",
-      origen: "",
-      mercado: "",
-      factorActualizacion: "",
-      ...Object.fromEntries([...Array(30)].map((_, i) => [`factor${i + 8}`, ""])),
-    });
+    setForm(initialForm());
     setSeleccion(null);
   }
 
+  // -----------------------------
+  // GUARDAR / MODIFICAR
+  // -----------------------------
   async function guardar() {
+    if (!form.ejercicio || !form.instrumento || !form.fechaPago) {
+      alert("Los campos Ejercicio, Instrumento y Fecha Pago son obligatorios.");
+      return;
+    }
+
     if (seleccion) {
       await actualizarInfoExterna(seleccion.id, form);
       alert("Registro modificado");
@@ -124,37 +93,43 @@ export default function MantenedorInfoExterna() {
     cargar();
   }
 
+  // -----------------------------
+  // ELIMINAR
+  // -----------------------------
   async function borrarSeleccionado() {
     if (!seleccion) return alert("Seleccione un registro primero.");
     if (!confirm("¿Seguro deseas eliminar el registro seleccionado?")) return;
 
     await eliminarInfoExterna(seleccion.id);
-
     alert("Registro eliminado.");
+
     setSeleccion(null);
     cargar();
   }
 
+  // -----------------------------
+  // RENDER
+  // -----------------------------
   return (
     <div>
       <h2>Mantenedor — Información Externa</h2>
 
-      {/* === FILTROS === */}
+      {/* FILTROS */}
       <div style={{ marginBottom: "20px" }}>
         <h3>Filtros</h3>
 
         <select name="mercado" value={filtro.mercado} onChange={handleFiltro}>
           <option value="">Tipo Mercado</option>
-          <option value="ACC">Acciones</option>
-          <option value="CFI">CFI</option>
-          <option value="FM">Fondos Mutuos</option>
+          {MARKETS.map(m => (
+            <option key={m.value} value={m.value}>{m.label}</option>
+          ))}
         </select>
 
         <select name="origen" value={filtro.origen} onChange={handleFiltro}>
           <option value="">Origen</option>
-          <option value="corredora">Corredora</option>
-          <option value="entidad">Entidad Prestadora</option>
-          <option value="sistema">Sistema</option>
+          {ORIGINS.map(o => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
         </select>
 
         <input
@@ -168,7 +143,7 @@ export default function MantenedorInfoExterna() {
         <button onClick={limpiarFiltros}>Limpiar</button>
       </div>
 
-      {/* === LISTADO === */}
+      {/* LISTADO */}
       <h3>Listado</h3>
 
       <div style={{ overflowX: "auto", maxHeight: "420px" }}>
@@ -186,14 +161,14 @@ export default function MantenedorInfoExterna() {
               <th>Origen</th>
               <th>Act.</th>
 
-              {FACTOR_HEADERS.map((nombre, i) => (
-                <th key={i}>{nombre}</th>
+              {FACTOR_HEADERS.map((nombre, idx) => (
+                <th key={idx}>{nombre}</th>
               ))}
             </tr>
           </thead>
 
           <tbody>
-            {lista.map((row) => (
+            {lista.map(row => (
               <tr
                 key={row.id}
                 onClick={() => {
@@ -216,8 +191,8 @@ export default function MantenedorInfoExterna() {
                 <td>{row.origen}</td>
                 <td>{row.factorActualizacion}</td>
 
-                {FACTOR_HEADERS.map((_, i) => (
-                  <td key={i}>{row[`factor${i + 8}`]}</td>
+                {FACTOR_HEADERS.map((_, idx) => (
+                  <td key={idx}>{row[`factor${idx + 8}`]}</td>
                 ))}
               </tr>
             ))}
@@ -227,7 +202,7 @@ export default function MantenedorInfoExterna() {
 
       {lista.length === 0 && <p>No hay registros para mostrar.</p>}
 
-      {/* BOTONES BAJO LA GRILLA */}
+      {/* ACCIONES */}
       <div style={{ marginTop: "15px" }}>
         <button onClick={borrarSeleccionado}>Eliminar</button>
 
@@ -244,7 +219,7 @@ export default function MantenedorInfoExterna() {
         </button>
       </div>
 
-      {/* === MODAL CARGA MASIVA === */}
+      {/* MODAL */}
       {mostrarModalCarga && (
         <ModalCargaMasivaInfoExterna
           onClose={() => setMostrarModalCarga(false)}

@@ -5,125 +5,177 @@ import {
   existeCalificacion
 } from "../services/CalificacionesService";
 
-import {
-  validarFecha,
-  validarTipoSociedad,
-  validarMercado,
-  validarFormatoFactor,
-  validarSumaFactores
-} from "../services/Validadores";
-
-import FormularioFactores from "../components/inputs/FormularioFactores.jsx";
-
-export default function IngresoCalificacion({ onCreated }) {
+export default function IngresoCalificacion({ onCreated, mercadoInicial = "", anioInicial = "" }) {
   const [form, setForm] = useState({
-    rut: "",
-    nombre: "",
-    monto: "",
-    fecha: "",
-    tipoSociedad: "",
-    mercado: "",
-    factor8: "",
-    factor9: "",
-    factor10: "",
-    factor11: "",
-    factor12: "",
-    factor13: "",
-    factor14: "",
-    factor15: "",
-    factor16: "",
-    factor17: "",
-    factor18: "",
-    factor19: "",
+    mercado: mercadoInicial,            // pre-cargado desde el mantenedor
+    instrumento: "",
+    secuenciaEvento: "",
+    dividendo: 0,
+    fechaPago: "",
+    valorHistorico: "",
+    anio: anioInicial,                  // pre-cargado
+    descripcion: "",
+    isfut: false,
+    factorActualizacion: 0
   });
 
   function handleChange(e) {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value, type, checked } = e.target;
+    setForm({
+      ...form,
+      [name]: type === "checkbox" ? checked : value
+    });
   }
 
   async function guardar() {
-    // ==== VALIDACIONES ====
-
-    if (!validarFecha(form.fecha)) {
-      alert("Fecha inválida. Debe estar en formato DD-MM-AAAA");
+    // VALIDACIONES HDU1
+    if (!form.instrumento.trim()) {
+      alert("Debe ingresar el Instrumento.");
       return;
     }
 
-    if (!validarTipoSociedad(form.tipoSociedad)) {
-      alert("Tipo de sociedad debe ser A o C");
+    if (!form.secuenciaEvento || Number(form.secuenciaEvento) <= 10000) {
+      alert("La secuencia de evento debe ser numérica y mayor a 10.000.");
       return;
     }
 
-    if (!validarMercado(form.mercado)) {
-      alert("El mercado debe tener 1 a 3 letras");
+    if (!form.fechaPago) {
+      alert("Debe seleccionar la Fecha de Pago.");
       return;
     }
 
-    // validar formato de cada factor
-    for (let i = 8; i <= 19; i++) {
-      const key = `factor${i}`;
-      if (form[key] && !validarFormatoFactor(form[key])) {
-        alert(`El factor ${i} tiene formato inválido`);
-        return;
-      }
-    }
-
-    // validar suma <= 1
-    if (!validarSumaFactores(form)) {
-      alert("La suma de factores (8 al 19) no debe superar 1");
+    if (!form.anio) {
+      alert("El año comercial no puede estar vacío.");
       return;
     }
 
-    // ==== EXISTE → ACTUALIZAR | NO EXISTE → CREAR ====
-    const existe = await existeCalificacion(form.rut);
+    // IDENTIFICADOR PRINCIPAL = instrumento
+    const existe = await existeCalificacion(form.instrumento);
 
     if (existe) {
-      await actualizarCalificacion(form.rut, form);
-      alert("Registro actualizado");
+      await actualizarCalificacion(form.instrumento, form);
+      alert("Calificación actualizada");
     } else {
       await crearCalificacion(form);
-      alert("Registro creado");
+      alert("Calificación creada");
     }
 
     if (onCreated) onCreated();
 
-    // reset
+    // RESET
     setForm({
-      rut: "",
-      nombre: "",
-      monto: "",
-      fecha: "",
-      tipoSociedad: "",
-      mercado: "",
-      factor8: "",
-      factor9: "",
-      factor10: "",
-      factor11: "",
-      factor12: "",
-      factor13: "",
-      factor14: "",
-      factor15: "",
-      factor16: "",
-      factor17: "",
-      factor18: "",
-      factor19: "",
+      mercado: mercadoInicial,
+      instrumento: "",
+      secuenciaEvento: "",
+      dividendo: 0,
+      fechaPago: "",
+      valorHistorico: "",
+      anio: anioInicial,
+      descripcion: "",
+      isfut: false,
+      factorActualizacion: 0
     });
   }
 
   return (
     <div>
-      <h3>Ingresar Calificación</h3>
+      <h3>Ingresar Calificación Tributaria</h3>
 
-      <input name="rut" placeholder="RUT" value={form.rut} onChange={handleChange} />
-      <input name="nombre" placeholder="Nombre" value={form.nombre} onChange={handleChange} />
-      <input name="monto" placeholder="Monto" value={form.monto} onChange={handleChange} />
-      <input name="fecha" placeholder="DD-MM-AAAA" value={form.fecha} onChange={handleChange} />
+      <div style={{ marginBottom: "10px" }}>
+        <input
+          name="mercado"
+          placeholder="Mercado"
+          value={form.mercado}
+          readOnly
+        />
+      </div>
 
-      <input name="tipoSociedad" placeholder="Tipo (A/C)" value={form.tipoSociedad} onChange={handleChange} />
-      <input name="mercado" placeholder="Mercado" value={form.mercado} onChange={handleChange} />
+      <div style={{ marginBottom: "10px" }}>
+        <input
+          name="instrumento"
+          placeholder="Instrumento"
+          value={form.instrumento}
+          onChange={handleChange}
+        />
+      </div>
 
-      {/* FACTORES (Componente separado) */}
-      <FormularioFactores form={form} handleChange={handleChange} />
+      <div style={{ marginBottom: "10px" }}>
+        <input
+          name="secuenciaEvento"
+          placeholder="Secuencia Evento (>10000)"
+          value={form.secuenciaEvento}
+          onChange={handleChange}
+        />
+      </div>
+
+      <div style={{ marginBottom: "10px" }}>
+        <input
+          name="dividendo"
+          placeholder="Dividendo"
+          type="number"
+          value={form.dividendo}
+          onChange={handleChange}
+        />
+      </div>
+
+      <div style={{ marginBottom: "10px" }}>
+        <input
+          type="date"
+          name="fechaPago"
+          value={form.fechaPago}
+          onChange={handleChange}
+        />
+      </div>
+
+      <div style={{ marginBottom: "10px" }}>
+        <input
+          name="valorHistorico"
+          placeholder="Valor Histórico"
+          value={form.valorHistorico}
+          onChange={handleChange}
+        />
+      </div>
+
+      <div style={{ marginBottom: "10px" }}>
+        <input
+          name="anio"
+          placeholder="Año Comercial"
+          value={form.anio}
+          readOnly
+        />
+      </div>
+
+      <div style={{ marginBottom: "10px" }}>
+        <input
+          name="descripcion"
+          placeholder="Descripción"
+          value={form.descripcion}
+          onChange={handleChange}
+        />
+      </div>
+
+      <div style={{ marginBottom: "10px" }}>
+        <label>
+          ISFUT:
+          <input
+            type="checkbox"
+            name="isfut"
+            checked={form.isfut}
+            onChange={handleChange}
+            style={{ marginLeft: "10px" }}
+          />
+        </label>
+      </div>
+
+      <div style={{ marginBottom: "10px" }}>
+        <input
+          name="factorActualizacion"
+          placeholder="Factor Actualización"
+          type="number"
+          value={form.factorActualizacion}
+          onChange={handleChange}
+        />
+      </div>
 
       <button onClick={guardar}>Guardar</button>
     </div>
