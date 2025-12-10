@@ -19,8 +19,18 @@ export default function AppRouter() {
           {/* Menú principal */}
           <Route path="/" element={<MenuCalificacionesTributarias />} />
 
-          {/* CRUD principal */}
-          <Route path="/ingreso" element={<IngresoCalificacion />} />
+          {/* Ingreso de calificación (con valores iniciales) */}
+          <Route
+            path="/ingreso"
+            element={
+              <IngresoCalificacion
+                mercadoInicial="ACC"
+                anioInicial="2024"
+              />
+            }
+          />
+
+          {/* Listado */}
           <Route path="/listado" element={<ListadoCalificaciones />} />
 
           {/* Cargas masivas */}
