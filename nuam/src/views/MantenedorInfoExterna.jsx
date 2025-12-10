@@ -7,21 +7,16 @@ import {
   actualizarInfoExterna,
 } from "../services/InformacionExternaService";
 
-import ModalCargaMasivaInfoExterna from "../components/modals/ModalCargaMasivaInfoExterna";
 
-// Importar constantes
+import ModalCargaMasivaInfoExterna from "../components/modals/ModalCargaMasivaInfoExterna.jsx";
+import ModalIngresarInfoExterna from "../components/modals/ModalIngresarInfoExterna.jsx";
+
+
 import { MARKETS } from "../constants/markets";
 import { ORIGINS } from "../constants/origins";
 import { FACTOR_HEADERS, DEFAULT_INFO_EXTERNA } from "../constants/defaultInfoExterna";
 
-// TOTAL FACTORES = columnas factor8 a factor37 (30 factores)
-const TOTAL_FACTORES = 30;
-
 export default function MantenedorInfoExterna() {
-
-  // -----------------------------
-  // ESTADOS
-  // -----------------------------
   const [filtro, setFiltro] = useState({
     mercado: "",
     origen: "",
@@ -32,16 +27,11 @@ export default function MantenedorInfoExterna() {
   const [seleccion, setSeleccion] = useState(null);
 
   const [mostrarModalCarga, setMostrarModalCarga] = useState(false);
+  const [mostrarModalIngresar, setMostrarModalIngresar] = useState(false);
 
-  const initialForm = () => ({
-    ...DEFAULT_INFO_EXTERNA
-  });
-
+  const initialForm = () => ({ ...DEFAULT_INFO_EXTERNA });
   const [form, setForm] = useState(initialForm);
 
-  // -----------------------------
-  // CARGA INICIAL
-  // -----------------------------
   useEffect(() => {
     cargar();
   }, []);
@@ -51,15 +41,8 @@ export default function MantenedorInfoExterna() {
     setLista(data);
   }
 
-  // -----------------------------
-  // MANEJO DE FORMULARIOS
-  // -----------------------------
   function handleFiltro(e) {
     setFiltro({ ...filtro, [e.target.name]: e.target.value });
-  }
-
-  function handleChange(e) {
-    setForm({ ...form, [e.target.name]: e.target.value });
   }
 
   function limpiarFiltros() {
@@ -67,87 +50,58 @@ export default function MantenedorInfoExterna() {
     cargar();
   }
 
-  function limpiarFormulario() {
-    setForm(initialForm());
-    setSeleccion(null);
-  }
-
-  // -----------------------------
-  // GUARDAR / MODIFICAR
-  // -----------------------------
-  async function guardar() {
-    if (!form.ejercicio || !form.instrumento || !form.fechaPago) {
-      alert("Los campos Ejercicio, Instrumento y Fecha Pago son obligatorios.");
-      return;
-    }
-
-    if (seleccion) {
-      await actualizarInfoExterna(seleccion.id, form);
-      alert("Registro modificado");
-    } else {
-      await crearInfoExterna(form);
-      alert("Registro ingresado");
-    }
-
-    limpiarFormulario();
-    cargar();
-  }
-
-  // -----------------------------
-  // ELIMINAR
-  // -----------------------------
   async function borrarSeleccionado() {
     if (!seleccion) return alert("Seleccione un registro primero.");
-    if (!confirm("¿Seguro deseas eliminar el registro seleccionado?")) return;
+    if (!confirm("¿Eliminar registro seleccionado?")) return;
 
     await eliminarInfoExterna(seleccion.id);
-    alert("Registro eliminado.");
-
     setSeleccion(null);
     cargar();
   }
 
-  // -----------------------------
-  // RENDER
-  // -----------------------------
   return (
-    <div>
+    <div className="page">
       <h2>Mantenedor — Información Externa</h2>
 
       {/* FILTROS */}
-      <div style={{ marginBottom: "20px" }}>
+      <div className="infoext-card">
         <h3>Filtros</h3>
 
-        <select name="mercado" value={filtro.mercado} onChange={handleFiltro}>
-          <option value="">Tipo Mercado</option>
-          {MARKETS.map(m => (
-            <option key={m.value} value={m.value}>{m.label}</option>
-          ))}
-        </select>
+        <div className="filters-grid">
+          <select className="select" name="mercado" value={filtro.mercado} onChange={handleFiltro}>
+            <option value="">Tipo Mercado</option>
+            {MARKETS.map((m) => (
+              <option key={m.value} value={m.value}>{m.label}</option>
+            ))}
+          </select>
 
-        <select name="origen" value={filtro.origen} onChange={handleFiltro}>
-          <option value="">Origen</option>
-          {ORIGINS.map(o => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
+          <select className="select" name="origen" value={filtro.origen} onChange={handleFiltro}>
+            <option value="">Origen</option>
+            {ORIGINS.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
 
-        <input
-          name="ejercicio"
-          placeholder="Periodo Comercial (Año)"
-          value={filtro.ejercicio}
-          onChange={handleFiltro}
-        />
+          <input
+            className="input"
+            name="ejercicio"
+            placeholder="Periodo Comercial (Año)"
+            value={filtro.ejercicio}
+            onChange={handleFiltro}
+          />
+        </div>
 
-        <button onClick={cargar}>Buscar</button>
-        <button onClick={limpiarFiltros}>Limpiar</button>
+        <div className="actions-row">
+          <button className="btn" onClick={cargar}>Buscar</button>
+          <button className="btn ghost" onClick={limpiarFiltros}>Limpiar</button>
+        </div>
       </div>
 
       {/* LISTADO */}
-      <h3>Listado</h3>
+      <h3 style={{ marginTop: "12px" }}>Listado</h3>
 
-      <div style={{ overflowX: "auto", maxHeight: "420px" }}>
-        <table border="1" cellPadding="5" style={{ width: "100%" }}>
+      <div className="infoext-table-container">
+        <table className="infoext-table">
           <thead>
             <tr>
               <th></th>
@@ -168,17 +122,14 @@ export default function MantenedorInfoExterna() {
           </thead>
 
           <tbody>
-            {lista.map(row => (
+            {lista.map((row) => (
               <tr
                 key={row.id}
                 onClick={() => {
                   setSeleccion(row);
                   setForm(row);
                 }}
-                style={{
-                  background: seleccion?.id === row.id ? "#e0f3ff" : "",
-                  cursor: "pointer",
-                }}
+                className={seleccion?.id === row.id ? "infoext-row-selected" : ""}
               >
                 <td>●</td>
                 <td>{row.ejercicio}</td>
@@ -202,30 +153,33 @@ export default function MantenedorInfoExterna() {
 
       {lista.length === 0 && <p>No hay registros para mostrar.</p>}
 
-      {/* ACCIONES */}
-      <div style={{ marginTop: "15px" }}>
-        <button onClick={borrarSeleccionado}>Eliminar</button>
-
-        <button style={{ marginLeft: "10px" }} onClick={() => setMostrarModalCarga(true)}>
-          Carga Masiva
-        </button>
-
-        <button style={{ marginLeft: "10px" }} onClick={guardar}>
-          {seleccion ? "Modificar" : "Ingresar"}
-        </button>
-
-        <button style={{ marginLeft: "10px" }} onClick={limpiarFormulario}>
+      {/* BOTONES */}
+      <div className="actions-row" style={{ marginTop: 10 }}>
+        <button className="btn" onClick={borrarSeleccionado}>Eliminar</button>
+        <button className="btn" onClick={() => setMostrarModalCarga(true)}>Carga Masiva</button>
+        <button className="btn primary" onClick={() => setMostrarModalIngresar(true)}>Ingresar</button>
+        <button className="btn ghost" onClick={() => { setForm(initialForm()); setSeleccion(null); }}>
           Limpiar Formulario
         </button>
       </div>
 
-      {/* MODAL */}
+      {/* MODALES */}
       {mostrarModalCarga && (
         <ModalCargaMasivaInfoExterna
           onClose={() => setMostrarModalCarga(false)}
           onSuccess={() => {
             cargar();
             setMostrarModalCarga(false);
+          }}
+        />
+      )}
+
+      {mostrarModalIngresar && (
+        <ModalIngresarInfoExterna
+          onClose={() => setMostrarModalIngresar(false)}
+          onSuccess={() => {
+            cargar();
+            setMostrarModalIngresar(false);
           }}
         />
       )}

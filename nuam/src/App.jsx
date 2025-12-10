@@ -7,9 +7,12 @@ import Login from "./views/Login.jsx";
 import Register from "./views/Register.jsx";
 import IngresoCalificacion from "./views/IngresoCalificacion.jsx";
 import { obtenerCalificaciones, eliminarCalificacion } from "./services/CalificacionesService";
+import MantenedorInfoExterna from "./views/MantenedorInfoExterna.jsx";
+
 
 const sidebarItems = [
   { id: "/dashboard", label: "Dashboard", icon: "📊", path: "/dashboard" },
+  { id: "info", label: "Info Externa", path: "/info-externa", icon: "📄" },
   { id: "/calificaciones/ingreso", label: "Calificaciones", icon: "✅", path: "/calificaciones/ingreso" },
   { id: "/documentos", label: "Documentos", icon: "📂", path: "/documentos" },
   { id: "/declaraciones", label: "Declaraciones", icon: "📑", path: "/declaraciones" },
@@ -287,6 +290,7 @@ export default function App() {
           }
         >
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/info-externa" element={<MantenedorInfoExterna />} />
           <Route path="/calificaciones/ingreso" element={<IngresoCalificacion />} />
           <Route path="/documentos" element={<PlaceholderPage title="Documentos" />} />
           <Route path="/declaraciones" element={<PlaceholderPage title="Declaraciones" />} />
