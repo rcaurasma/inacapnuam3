@@ -22,6 +22,7 @@ export default function ListadoCalificaciones() {
   }
 
   useEffect(() => {
+    // eslint-disable-next-line
     cargarDatos();
   }, []);
 

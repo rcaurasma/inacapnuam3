@@ -11,20 +11,11 @@ export default function CargaPorMonto() {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Leer CSV (array de filas)
     const filas = await leerCSV(file);
-
-    // Validar cada fila
     const procesadas = filas.map((fila) => {
       const { valido, errores } = validarFila(fila);
-
-      return {
-        ...fila,
-        valido,
-        errores,
-      };
+      return { ...fila, valido, errores };
     });
-
     setRegistros(procesadas);
     setMostrarModal(true);
   }

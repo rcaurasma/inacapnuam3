@@ -13,24 +13,19 @@ import MainLayout from "../components/layout/MainLayout";
 
 export default function AppRouter() {
   return (
-    <BrowserRouter>
+    <BrowserRouter
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       <MainLayout>
         <Routes>
           {/* Menú principal */}
           <Route path="/" element={<MenuCalificacionesTributarias />} />
 
-          {/* Ingreso de calificación (con valores iniciales) */}
-          <Route
-            path="/ingreso"
-            element={
-              <IngresoCalificacion
-                mercadoInicial="ACC"
-                anioInicial="2024"
-              />
-            }
-          />
-
-          {/* Listado */}
+          {/* CRUD principal */}
+          <Route path="/ingreso" element={<IngresoCalificacion />} />
           <Route path="/listado" element={<ListadoCalificaciones />} />
 
           {/* Cargas masivas */}

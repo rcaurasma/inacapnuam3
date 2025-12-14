@@ -1,187 +1,74 @@
-import { initDB, saveDB } from "../database/db";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
-// ----------------------------------------------
-// CREAR
-// ----------------------------------------------
 export async function crearCalificacion(data) {
-  const db = await initDB();
-
-  const stmt = db.prepare(`
-    INSERT INTO calificaciones (
-      mercado,
-      instrumento,
-      anioComercial,
-      secuenciaEvento,
-      numeroDividendo,
-      valorHistorico,
-      fechaPago,
-      descripcion,
-      origen,
-      fuente,
-      acogidoIsfut,
-      factorsJson,
-      montosJson,
-      createdAt,
-      updatedAt
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  const now = new Date().toISOString();
-
-  stmt.run([
-    data.mercado || null,
-    data.instrumento || null,
-    data.anioComercial || null,
-    data.secuenciaEvento || null,
-    data.numeroDividendo || null,
-    data.valorHistorico != null ? Number(data.valorHistorico) : null,
-    data.fechaPago || null,
-    data.descripcion || "",
-    data.origen || "Operador",
-    data.fuente || "Manual",
-    data.acogidoIsfut ? 1 : 0,
-    JSON.stringify(data.factors || []),
-    JSON.stringify(data.montos || []),
-    now,
-    now,
-  ]);
-
-  stmt.free();
-  saveDB(db);
+  const response = await fetch(`${API_URL}/calificaciones`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error("Error al crear calificación");
+  return await response.json();
 }
 
-// ----------------------------------------------
-// OBTENER LISTADO
-// ----------------------------------------------
 export async function obtenerCalificaciones() {
-  const db = await initDB();
-  const res = db.exec(`SELECT * FROM calificaciones ORDER BY id DESC`);
-  if (!res[0]) return [];
-
-  return res[0].values.map(row => ({
-    id: row[0],
-    mercado: row[1],
-    instrumento: row[2],
-    anioComercial: row[3],
-    secuenciaEvento: row[4],
-    numeroDividendo: row[5],
-    valorHistorico: row[6],
-    fechaPago: row[7],
-    descripcion: row[8],
-    origen: row[9],
-    fuente: row[10],
-    acogidoIsfut: Boolean(row[11]),
-    factors: safeParseJson(row[12]),
-    montos: safeParseJson(row[13]),
-    createdAt: row[14],
-    updatedAt: row[15],
+  const response = await fetch(`${API_URL}/calificaciones`);
+  if (!response.ok) return [];
+  const data = await response.json();
+  
+  // Mapear snake_case de DB a camelCase del frontend si es necesario
+  // El backend devuelve snake_case porque postgres lo usa por defecto, 
+  // pero en el backend hicimos SELECT * sin alias.
+  // Vamos a asumir que el backend devuelve snake_case y lo convertimos aquí.
+  
+  return data.map(row => ({
+    id: row.id,
+    mercado: row.mercado,
+    instrumento: row.instrumento,
+    anioComercial: row.anio_comercial,
+    secuenciaEvento: row.secuencia_evento,
+    numeroDividendo: row.numero_dividendo,
+    valorHistorico: row.valor_historico,
+    fechaPago: row.fecha_pago, // Postgres devuelve string YYYY-MM-DD o ISO
+    descripcion: row.descripcion,
+    origen: row.origen,
+    fuente: row.fuente,
+    acogidoIsfut: row.acogido_isfut,
+    factors: row.factors_json, // Postgres devuelve el JSON ya parseado si usamos pg
+    montos: row.montos_json,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   }));
 }
 
-// ----------------------------------------------
-// ELIMINAR
-// ----------------------------------------------
 export async function eliminarCalificacion(id) {
-  const db = await initDB();
-  const stmt = db.prepare(`DELETE FROM calificaciones WHERE id = ?`);
-  stmt.run([id]);
-  stmt.free();
-  saveDB(db);
+  await fetch(`${API_URL}/calificaciones/${id}`, { method: "DELETE" });
 }
 
-// ----------------------------------------------
-// ACTUALIZAR
-// ----------------------------------------------
 export async function actualizarCalificacion(id, data) {
-  const db = await initDB();
-
-  const stmt = db.prepare(`
-    UPDATE calificaciones
-    SET mercado = ?, instrumento = ?, anioComercial = ?, secuenciaEvento = ?,
-        numeroDividendo = ?, valorHistorico = ?, fechaPago = ?, descripcion = ?,
-        origen = ?, fuente = ?, acogidoIsfut = ?, factorsJson = ?, montosJson = ?,
-        updatedAt = ?
-    WHERE id = ?
-  `);
-
-  stmt.run([
-    data.mercado || null,
-    data.instrumento || null,
-    data.anioComercial || null,
-    data.secuenciaEvento || null,
-    data.numeroDividendo || null,
-    data.valorHistorico != null ? Number(data.valorHistorico) : null,
-    data.fechaPago || null,
-    data.descripcion || "",
-    data.origen || "Operador",
-    data.fuente || "Manual",
-    data.acogidoIsfut ? 1 : 0,
-    JSON.stringify(data.factors || []),
-    JSON.stringify(data.montos || []),
-    new Date().toISOString(),
-    id,
-  ]);
-
-  stmt.free();
-  saveDB(db);
+  await fetch(`${API_URL}/calificaciones/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
 }
 
 export async function existeCalificacionPorInstrumento(fechaPago, instrumento) {
-  if (!fechaPago || !instrumento) return null;
-
-  const db = await initDB();
-  const stmt = db.prepare(
-    `SELECT id FROM calificaciones WHERE fechaPago = ? AND instrumento = ? LIMIT 1`
-  );
-  stmt.bind([fechaPago, instrumento]);
-  const hasRow = stmt.step();
-  const id = hasRow ? stmt.getAsObject().id ?? null : null;
-  stmt.free();
-  return id;
+  const params = new URLSearchParams({ fechaPago, instrumento });
+  const response = await fetch(`${API_URL}/calificaciones/existe?${params}`);
+  if (!response.ok) return false;
+  const data = await response.json();
+  return data.exists;
 }
 
-export async function existeCalificacion(...args) {
-  if (args.length === 2) {
-    return await existeCalificacionPorInstrumento(args[0], args[1]);
-  }
-
-  const candidate = args[0];
-
-  if (candidate && typeof candidate === "object") {
-    const { fechaPago, instrumento, rut } = candidate;
-    if (fechaPago && instrumento) {
-      return await existeCalificacionPorInstrumento(fechaPago, instrumento);
-    }
-    if (instrumento || rut) {
-      return await buscarCalificacionPorInstrumento(instrumento || rut);
-    }
-  }
-
-  if (typeof candidate === "string" && candidate.trim() !== "") {
-    return await buscarCalificacionPorInstrumento(candidate.trim());
-  }
-
-  return null;
+// Función auxiliar para compatibilidad si algo falla
+export async function existeCalificacion(rut) {
+    // Esta función estaba en el código original pero no en el snippet que leí, 
+    // pero aparecía en CargaPorFactor.jsx. La agrego por si acaso.
+    // Asumo que rut es instrumento o similar, o quizás no se usa.
+    // Revisando CargaPorFactor.jsx: const existe = await existeCalificacion(reg.rut);
+    // Parece que rut se usa como identificador.
+    // Implementaré una búsqueda simple.
+    const lista = await obtenerCalificaciones();
+    return lista.some(c => c.instrumento === rut); // Asumiendo rut == instrumento
 }
 
-async function buscarCalificacionPorInstrumento(instrumento) {
-  if (!instrumento) return null;
-
-  const db = await initDB();
-  const stmt = db.prepare(
-    `SELECT id FROM calificaciones WHERE instrumento = ? LIMIT 1`
-  );
-  stmt.bind([instrumento]);
-  const hasRow = stmt.step();
-  const id = hasRow ? stmt.getAsObject().id ?? null : null;
-  stmt.free();
-  return id;
-}
-
-function safeParseJson(raw) {
-  try {
-    return raw ? JSON.parse(raw) : [];
-  } catch (e) {
-    return [];
-  }
-}

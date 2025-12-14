@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-
 import {
   obtenerInfoExterna,
   crearInfoExterna,
@@ -7,14 +6,40 @@ import {
   actualizarInfoExterna,
 } from "../services/InformacionExternaService";
 
+import ModalCargaMasivaInfoExterna from "../components/modals/ModalCargaMasivaInfoExterna";
 
-import ModalCargaMasivaInfoExterna from "../components/modals/ModalCargaMasivaInfoExterna.jsx";
-import ModalIngresarInfoExterna from "../components/modals/ModalIngresarInfoExterna.jsx";
-
-
-import { MARKETS } from "../constants/markets";
-import { ORIGINS } from "../constants/origins";
-import { FACTOR_HEADERS, DEFAULT_INFO_EXTERNA } from "../constants/defaultInfoExterna";
+const FACTOR_HEADERS = [
+  "Ajuste capital",            // F8
+  "Renta devengada",           // F9
+  "Renta percibida",           // F10
+  "Corrección monetaria",      // F11
+  "Gasto rechazado",           // F12
+  "Crédito total",             // F13
+  "Crédito parcial",           // F14
+  "Capital propio",            // F15
+  "Valor libro",               // F16
+  "Utilidad repartida",        // F17
+  "Diferencia tributaria",     // F18
+  "Revalorización",            // F19
+  "Retención",                 // F20
+  "Base exenta",               // F21
+  "Interés",                   // F22
+  "Ganancia",                  // F23
+  "Pérdida",                   // F24
+  "Rebaja",                    // F25
+  "Renta afecta",              // F26
+  "Renta no afecta",           // F27
+  "Monto reajustado",          // F28
+  "Renta presunta",            // F29
+  "Crédito por impuesto",      // F30
+  "Crédito externo",           // F31
+  "IDPC base",                 // F32
+  "IDPC crédito",              // F33
+  "Factor adicional",          // F34
+  "Reserva",                   // F35
+  "Impto sustitutivo",         // F36
+  "Diferencia cambio"          // F37
+];
 
 export default function MantenedorInfoExterna() {
   const [filtro, setFiltro] = useState({
@@ -24,84 +49,122 @@ export default function MantenedorInfoExterna() {
   });
 
   const [lista, setLista] = useState([]);
+
   const [seleccion, setSeleccion] = useState(null);
 
   const [mostrarModalCarga, setMostrarModalCarga] = useState(false);
-  const [mostrarModalIngresar, setMostrarModalIngresar] = useState(false);
 
-  const initialForm = () => ({ ...DEFAULT_INFO_EXTERNA });
-  const [form, setForm] = useState(initialForm);
-
-  useEffect(() => {
-    cargar();
-  }, []);
+  const [form, setForm] = useState(() => ({
+    ejercicio: "",
+    instrumento: "",
+    fechaPago: "",
+    descripcionDividendo: "",
+    secuenciaEvento: "",
+    acogidoIsfut: "",
+    origen: "",
+    mercado: "",
+    factorActualizacion: "",
+    ...Object.fromEntries([...Array(30)].map((_, i) => [`factor${i + 8}`, ""])),
+  }));
 
   async function cargar() {
     const data = await obtenerInfoExterna(filtro);
     setLista(data);
   }
 
+  useEffect(() => {
+    cargar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function handleFiltro(e) {
     setFiltro({ ...filtro, [e.target.name]: e.target.value });
   }
 
   function limpiarFiltros() {
-    setFiltro({ mercado: "", origen: "", ejercicio: "" });
+    setFiltro({
+      mercado: "",
+      origen: "",
+      ejercicio: "",
+    });
+    cargar();
+  }
+
+  function limpiarFormulario() {
+    setForm({
+      ejercicio: "",
+      instrumento: "",
+      fechaPago: "",
+      descripcionDividendo: "",
+      secuenciaEvento: "",
+      acogidoIsfut: "",
+      origen: "",
+      mercado: "",
+      factorActualizacion: "",
+      ...Object.fromEntries([...Array(30)].map((_, i) => [`factor${i + 8}`, ""])),
+    });
+    setSeleccion(null);
+  }
+
+  async function guardar() {
+    if (seleccion) {
+      await actualizarInfoExterna(seleccion.id, form);
+      alert("Registro modificado");
+    } else {
+      await crearInfoExterna(form);
+      alert("Registro ingresado");
+    }
+
+    limpiarFormulario();
     cargar();
   }
 
   async function borrarSeleccionado() {
     if (!seleccion) return alert("Seleccione un registro primero.");
-    if (!confirm("¿Eliminar registro seleccionado?")) return;
+    if (!confirm("¿Seguro deseas eliminar el registro seleccionado?")) return;
 
     await eliminarInfoExterna(seleccion.id);
+
+    alert("Registro eliminado.");
     setSeleccion(null);
     cargar();
   }
 
   return (
-    <div className="page">
+    <div>
       <h2>Mantenedor — Información Externa</h2>
 
-      {/* FILTROS */}
-      <div className="infoext-card">
-        <h3>Filtros</h3>
+      {/* === FILTROS === */}
+      <div style={{ marginBottom: "20px" }}>
+          <select name="mercado" value={filtro.mercado} onChange={handleFiltro}>
+          <option value="">Tipo Mercado</option>
+          <option value="ACC">Acciones</option>
+          <option value="CFI">CFI</option>
+          <option value="FM">Fondos Mutuos</option>
+        </select>
 
-        <div className="filters-grid">
-          <select className="select" name="mercado" value={filtro.mercado} onChange={handleFiltro}>
-            <option value="">Tipo Mercado</option>
-            {MARKETS.map((m) => (
-              <option key={m.value} value={m.value}>{m.label}</option>
-            ))}
-          </select>
+        <select name="origen" value={filtro.origen} onChange={handleFiltro}>
+          <option value="">Origen</option>
+          <option value="corredora">Corredora</option>
+          <option value="entidad">Entidad Prestadora</option>
+          <option value="sistema">Sistema</option>
+        </select>
 
-          <select className="select" name="origen" value={filtro.origen} onChange={handleFiltro}>
-            <option value="">Origen</option>
-            {ORIGINS.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
+        <input
+          name="ejercicio"
+          placeholder="Periodo Comercial (Año)"
+          value={filtro.ejercicio}
+          onChange={handleFiltro}
+        />
 
-          <input
-            className="input"
-            name="ejercicio"
-            placeholder="Periodo Comercial (Año)"
-            value={filtro.ejercicio}
-            onChange={handleFiltro}
-          />
-        </div>
-
-        <div className="actions-row">
-          <button className="btn" onClick={cargar}>Buscar</button>
-          <button className="btn ghost" onClick={limpiarFiltros}>Limpiar</button>
-        </div>
+        <button onClick={cargar}>Buscar</button>
+        <button onClick={limpiarFiltros}>Limpiar</button>
       </div>
 
-      {/* LISTADO */}
-      <h3 style={{ marginTop: "12px" }}>Listado</h3>
+      <h3>Listado</h3>
 
-      <div className="infoext-table-container">
-        <table className="infoext-table">
+      <div style={{ overflowX: "auto", maxHeight: "420px" }}>
+        <table border="1" cellPadding="5" style={{ width: "100%" }}>
           <thead>
             <tr>
               <th></th>
@@ -115,8 +178,8 @@ export default function MantenedorInfoExterna() {
               <th>Origen</th>
               <th>Act.</th>
 
-              {FACTOR_HEADERS.map((nombre, idx) => (
-                <th key={idx}>{nombre}</th>
+              {FACTOR_HEADERS.map((nombre, i) => (
+                <th key={i}>{nombre}</th>
               ))}
             </tr>
           </thead>
@@ -129,7 +192,10 @@ export default function MantenedorInfoExterna() {
                   setSeleccion(row);
                   setForm(row);
                 }}
-                className={seleccion?.id === row.id ? "infoext-row-selected" : ""}
+                style={{
+                  background: seleccion?.id === row.id ? "#e0f3ff" : "",
+                  cursor: "pointer",
+                }}
               >
                 <td>●</td>
                 <td>{row.ejercicio}</td>
@@ -142,8 +208,8 @@ export default function MantenedorInfoExterna() {
                 <td>{row.origen}</td>
                 <td>{row.factorActualizacion}</td>
 
-                {FACTOR_HEADERS.map((_, idx) => (
-                  <td key={idx}>{row[`factor${idx + 8}`]}</td>
+                {FACTOR_HEADERS.map((_, i) => (
+                  <td key={i}>{row[`factor${i + 8}`]}</td>
                 ))}
               </tr>
             ))}
@@ -153,33 +219,29 @@ export default function MantenedorInfoExterna() {
 
       {lista.length === 0 && <p>No hay registros para mostrar.</p>}
 
-      {/* BOTONES */}
-      <div className="actions-row" style={{ marginTop: 10 }}>
-        <button className="btn" onClick={borrarSeleccionado}>Eliminar</button>
-        <button className="btn" onClick={() => setMostrarModalCarga(true)}>Carga Masiva</button>
-        <button className="btn primary" onClick={() => setMostrarModalIngresar(true)}>Ingresar</button>
-        <button className="btn ghost" onClick={() => { setForm(initialForm()); setSeleccion(null); }}>
+      <div style={{ marginTop: "15px" }}>
+        <button onClick={borrarSeleccionado}>Eliminar</button>
+
+        <button style={{ marginLeft: "10px" }} onClick={() => setMostrarModalCarga(true)}>
+          Carga Masiva
+        </button>
+
+        <button style={{ marginLeft: "10px" }} onClick={guardar}>
+          {seleccion ? "Modificar" : "Ingresar"}
+        </button>
+
+        <button style={{ marginLeft: "10px" }} onClick={limpiarFormulario}>
           Limpiar Formulario
         </button>
       </div>
 
-      {/* MODALES */}
+      {/* === MODAL CARGA MASIVA === */}
       {mostrarModalCarga && (
         <ModalCargaMasivaInfoExterna
           onClose={() => setMostrarModalCarga(false)}
           onSuccess={() => {
             cargar();
             setMostrarModalCarga(false);
-          }}
-        />
-      )}
-
-      {mostrarModalIngresar && (
-        <ModalIngresarInfoExterna
-          onClose={() => setMostrarModalIngresar(false)}
-          onSuccess={() => {
-            cargar();
-            setMostrarModalIngresar(false);
           }}
         />
       )}

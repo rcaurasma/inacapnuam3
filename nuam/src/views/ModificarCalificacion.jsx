@@ -12,8 +12,6 @@ import {
   validarSumaFactores
 } from "../services/Validadores";
 
-import FormularioFactores from "../components/inputs/FormularioFactores.jsx";
-
 export default function ModificarCalificacion({ id, onUpdated, onCancel }) {
   const [form, setForm] = useState({
     rut: "",
@@ -103,9 +101,6 @@ export default function ModificarCalificacion({ id, onUpdated, onCancel }) {
       <input name="tipoSociedad" placeholder="Tipo (A/C)" value={form.tipoSociedad} onChange={handleChange} />
 
       <input name="mercado" placeholder="Mercado" value={form.mercado} onChange={handleChange} />
-
-      {/* FACTORES usando componente reutilizable */}
-      <FormularioFactores form={form} handleChange={handleChange} />
 
       <button onClick={guardarCambios}>Guardar Cambios</button>
       <button onClick={onCancel} style={{ marginLeft: "10px" }}>Cancelar</button>
