@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function Header({ user, onDashboard, onLogin, onRegister }) {
+export default function Header({ user, onDashboard, onLogin, onRegister, onLogout }) {
 	return (
 		<header className="header">
 			<div className="header-brand">
@@ -13,19 +13,26 @@ export default function Header({ user, onDashboard, onLogin, onRegister }) {
 
 			<div className="header-actions">
 				<button className="btn ghost" onClick={onDashboard}>Dashboard</button>
-				<button className="btn ghost" onClick={onLogin}>Ingresar</button>
-				<button className="btn primary" onClick={onRegister}>Crear cuenta</button>
+				{!user && (
+					<>
+						<button className="btn ghost" onClick={onLogin}>Ingresar</button>
+						<button className="btn primary" onClick={onRegister}>Crear cuenta</button>
+					</>
+				)}
 
 				{user && (
-					<div className="header-user">
-						<div className="user-avatar">
-							{user.initials || "NA"}
+					<>
+						<div className="header-user">
+							<div className="user-avatar">
+								{user.initials || "NA"}
+							</div>
+							<div className="user-info">
+								<div className="user-name">{user.name}</div>
+								<div className="user-role">{user.role}</div>
+							</div>
 						</div>
-						<div className="user-info">
-							<div className="user-name">{user.name}</div>
-							<div className="user-role">{user.role}</div>
-						</div>
-					</div>
+						<button className="btn ghost" onClick={onLogout}>Cerrar sesión</button>
+					</>
 				)}
 			</div>
 		</header>

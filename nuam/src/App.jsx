@@ -99,20 +99,7 @@ function DashboardPage() {
         <button className="btn" onClick={handleDelete}>Eliminar</button>
       </div>
 
-      <div className="metrics">
-        <div className="metric-card">
-          <div className="metric-label">Calificaciones activas</div>
-          <div className="metric-value">128</div>
-        </div>
-        <div className="metric-card">
-          <div className="metric-label">Pendientes por validar</div>
-          <div className="metric-value">14</div>
-        </div>
-        <div className="metric-card">
-          <div className="metric-label">Última carga</div>
-          <div className="metric-value">hace 2h</div>
-        </div>
-      </div>
+      {/* Métricas removidas por solicitud del usuario */}
 
       <div className="filters-card" style={{ marginBottom: 8 }}>
         <div className="filters-grid">
@@ -244,18 +231,37 @@ function ProtectedRoute({ isAuthed }) {
 
 export default function App() {
   const [isAuthed, setIsAuthed] = useState(false);
+  const [user, setUser] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
 
-  const user = isAuthed ? { name: "Juan Alfaro", role: "Corredor", initials: "JA" } : null;
-
-  const handleLogin = data => {
+  const handleLogin = async (data) => {
     if (!data.email || !data.password) {
       alert("Ingresa correo y contraseña");
       return;
     }
-    setIsAuthed(true);
-    navigate("/dashboard", { replace: true });
+
+    try {
+      const res = await fetch(`${process.env.REACT_APP_API_URL || "http://localhost:3000"}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: data.email, password: data.password })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.message || 'Credenciales inválidas');
+        return;
+      }
+
+      const body = await res.json();
+      setIsAuthed(true);
+      setUser(body.user || { name: body.name, email: data.email });
+      navigate("/dashboard", { replace: true });
+    } catch (err) {
+      console.error(err);
+      alert('Error al conectar con el servidor');
+    }
   };
 
   const handleRegister = data => {
@@ -263,8 +269,16 @@ export default function App() {
       alert("Completa los campos requeridos");
       return;
     }
+    // Simple local register flow; backend register exists but left optional.
     setIsAuthed(true);
+    setUser({ name: data.name, email: data.email, role: data.role || 'Usuario' });
     navigate("/dashboard", { replace: true });
+  };
+
+  const handleLogout = () => {
+    setIsAuthed(false);
+    setUser(null);
+    navigate("/login", { replace: true });
   };
 
   return (
@@ -283,6 +297,7 @@ export default function App() {
               onDashboard={() => navigate("/dashboard")}
               onLogin={() => navigate("/login")}
               onRegister={() => navigate("/register")}
+              onLogout={handleLogout}
             />
           }
         >

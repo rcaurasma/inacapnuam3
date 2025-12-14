@@ -11,6 +11,7 @@ export default function MainLayout({
 	onDashboard,
 	onLogin,
 	onRegister,
+	onLogout,
 	children,
 }) {
 	return (
@@ -22,6 +23,7 @@ export default function MainLayout({
 					onDashboard={onDashboard}
 					onLogin={onLogin}
 					onRegister={onRegister}
+					onLogout={onLogout}
 				/>
 				<main className="page">{children || <Outlet />}</main>
 				<Footer />
