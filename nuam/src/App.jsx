@@ -6,6 +6,7 @@ import TablaCalificaciones from "./components/ui/TablaCalificaciones.jsx";
 import Login from "./views/Login.jsx";
 import Register from "./views/Register.jsx";
 import IngresoCalificacion from "./views/IngresoCalificacion.jsx";
+import ModalVerCalificacion from "./components/modals/ModalVerCalificacion";
 import { obtenerCalificaciones, eliminarCalificacion } from "./services/CalificacionesService";
 
 const sidebarItems = [
@@ -28,6 +29,7 @@ function DashboardPage() {
   const [selected, setSelected] = useState(null);
   const [showCargaFactores, setShowCargaFactores] = useState(false);
   const [showCargaMontos, setShowCargaMontos] = useState(false);
+  const [verRegistro, setVerRegistro] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -64,15 +66,16 @@ function DashboardPage() {
     setLoading(false);
   };
 
-  const handleDelete = async () => {
-    if (!selected) {
-      alert("Selecciona un registro para eliminar");
-      return;
-    }
-    await eliminarCalificacion(selected.id);
-    await recargar();
-    setSelected(null);
-  };
+  const handleDelete = async (row) => {
+  const target = row || selected;
+  if (!target) {
+    alert("Selecciona un registro para eliminar");
+    return;
+  }
+  await eliminarCalificacion(target.id);
+  await recargar();
+  setSelected(null);
+};
 
   const handleModificar = () => {
     if (!selected) {
@@ -171,11 +174,21 @@ function DashboardPage() {
       <TablaCalificaciones
         rows={filteredRows}
         selectedId={selected?.id}
-        onSelect={setSelected}
+        onSelect={(row) => {
+          setSelected(row);
+          setVerRegistro(row);
+        }}
         selectedFactor={applied.factor}
         onEdit={() => handleModificar()}
         onDelete={handleDelete}
       />
+
+      {verRegistro && (
+        <ModalVerCalificacion
+          calificacion={verRegistro}
+          onClose={() => setVerRegistro(null)}
+        />
+      )}
 
       {showCargaFactores && (
         <CargaModal title="Carga de Calificaciones (Factores)" onClose={() => setShowCargaFactores(false)} />
@@ -242,7 +255,7 @@ export default function App() {
     }
 
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_URL || "http://localhost:3000"}/api/login`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URLL || "http://localhost:3000"}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: data.email, password: data.password })

@@ -94,13 +94,31 @@ export default function TablaCalificaciones({
 									</td>
 									<td>
 										<div className="actions">
-											<button className="icon-btn" onClick={() => onEdit?.(row)} title="Editar">
+											<button
+												className="icon-btn"
+												onClick={() => onSelect?.(row)}
+												title="Ver"
+											>
+												👁
+											</button>
+
+											<button
+												className="icon-btn"
+												onClick={() => onEdit?.(row)}
+												title="Editar"
+											>
 												✏️
 											</button>
-											<button className="icon-btn" onClick={() => onDelete?.(row)} title="Eliminar">
+
+											<button
+												className="icon-btn"
+												onClick={() => onDelete?.(row)}
+												title="Eliminar"
+											>
 												🗑
 											</button>
 										</div>
+
 									</td>
 								</tr>
 							);
