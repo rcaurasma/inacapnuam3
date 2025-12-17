@@ -2,6 +2,23 @@ import React, { useMemo } from "react";
 
 const factorHeaders = Array.from({ length: 30 }, (_, i) => i + 8);
 
+function formatDateOnly(value) {
+  if (!value) return "-";
+  // Si viene "YYYY-MM-DD", mostrarlo tal cual
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return d.toLocaleDateString("es-CL");
+}
+
+function formatDateTime(value) {
+  if (!value) return "-";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return d.toLocaleString("es-CL");
+}
+
 export default function TablaCalificaciones({
   rows = [],
   selectedId,
@@ -10,8 +27,7 @@ export default function TablaCalificaciones({
   onDelete,
   selectedFactor = "all",
 }) {
-  const factorLabel =
-    selectedFactor === "all" ? "Σ F8-F37" : `F${selectedFactor}`;
+  const factorLabel = selectedFactor === "all" ? "Σ F8-F37" : `F${selectedFactor}`;
 
   const columns = useMemo(
     () => [
@@ -49,11 +65,7 @@ export default function TablaCalificaciones({
               <tr>
                 <td
                   colSpan={columns.length + 1}
-                  style={{
-                    textAlign: "center",
-                    padding: 18,
-                    color: "#7c8a93",
-                  }}
+                  style={{ textAlign: "center", padding: 18, color: "#7c8a93" }}
                 >
                   Sin calificaciones cargadas.
                 </td>
@@ -63,18 +75,14 @@ export default function TablaCalificaciones({
             {rows.map(row => {
               const factorMap = {};
               (row.factors || []).forEach(f => {
-                factorMap[f.id] =
-                  f.calculado ?? f.valor ?? f.original ?? 0;
+                factorMap[f.id] = f.calculado ?? f.valor ?? f.original ?? 0;
               });
 
               const sumaFactores = factorHeaders
                 .reduce((acc, n) => acc + Number(factorMap[n] || 0), 0)
                 .toFixed(6);
 
-              const factorKey =
-                selectedFactor === "all"
-                  ? null
-                  : Number(selectedFactor);
+              const factorKey = selectedFactor === "all" ? null : Number(selectedFactor);
 
               const displayedFactor =
                 selectedFactor === "all"
@@ -85,7 +93,6 @@ export default function TablaCalificaciones({
 
               return (
                 <tr key={row.id}>
-                  {/* selector */}
                   <td>
                     <input
                       type="radio"
@@ -96,18 +103,16 @@ export default function TablaCalificaciones({
                   </td>
 
                   <td>{row.anioComercial || "-"}</td>
-                  <td>{row.instrumento}</td>
-                  <td>{row.fechaPago}</td>
+                  <td>{row.instrumento || "-"}</td>
+                  <td>{formatDateOnly(row.fechaPago)}</td>
                   <td>{row.descripcion || ""}</td>
-                  <td>{row.secuenciaEvento}</td>
+                  <td>{row.secuenciaEvento || "-"}</td>
                   <td>{row.acogidoIsfut ? "Sí" : "No"}</td>
 
                   <td>
                     <span
                       className={`row-tag ${
-                        row.mercado === "Nacional"
-                          ? "tag-green"
-                          : "tag-orange"
+                        row.mercado === "Nacional" ? "tag-green" : "tag-orange"
                       }`}
                     >
                       {row.mercado || ""}
@@ -120,36 +125,21 @@ export default function TablaCalificaciones({
 
                   <td>
                     <div style={{ color: "#7c8a93", fontSize: 12 }}>
-                      {row.updatedAt
-                        ? new Date(row.updatedAt).toLocaleString()
-                        : "-"}
+                      {formatDateTime(row.updatedAt)}
                     </div>
                   </td>
 
-                  {/* acciones */}
                   <td>
                     <div className="actions">
-                      <button
-                        className="icon-btn"
-                        title="Ver"
-                        onClick={() => onSelect?.(row)}
-                      >
+                      <button className="icon-btn" onClick={() => onSelect?.(row)} title="Ver">
                         👁
                       </button>
 
-                      <button
-                        className="icon-btn"
-                        title="Editar"
-                        onClick={() => onEdit?.(row)}
-                      >
+                      <button className="icon-btn" onClick={() => onEdit?.(row)} title="Editar">
                         ✏️
                       </button>
 
-                      <button
-                        className="icon-btn"
-                        title="Eliminar"
-                        onClick={() => onDelete?.(row)}
-                      >
+                      <button className="icon-btn" onClick={() => onDelete?.(row)} title="Eliminar">
                         🗑
                       </button>
                     </div>
