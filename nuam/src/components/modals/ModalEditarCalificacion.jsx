@@ -3,6 +3,11 @@ import IngresoCalificacion from "../../views/IngresoCalificacion";
 export default function ModalEditarCalificacion({ registro, onClose, onSaved }) {
   if (!registro) return null;
 
+  const handleSaved = () => {
+    onSaved?.();
+    onClose();
+  };
+
   return (
     <div className="modal-overlay">
       <div className="modal-content modal-xl" style={{ maxHeight: "90vh", overflowY: "auto" }}>
@@ -16,11 +21,9 @@ export default function ModalEditarCalificacion({ registro, onClose, onSaved }) 
         </button>
 
         <IngresoCalificacion
-          onCreated={() => {
-            onSaved();
-            onClose();
-          }}
-          // 👇 simulamos navegación en modo editar
+          modo="editar"
+          registro={registro}
+          onSaved={handleSaved}
           key={registro.id}
         />
       </div>

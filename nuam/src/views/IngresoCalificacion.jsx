@@ -15,16 +15,19 @@ import {
 } from "../services/Validadores";
 import { makeDefaultFactors, makeDefaultMontos } from "../constants/factors";
 
-export default function IngresoCalificacion({ onCreated }) {
+export default function IngresoCalificacion({ modo: modoProp, registro: registroProp, onCreated, onSaved }) {
 	const navigate = useNavigate();
 	const location = useLocation();
 	const params = useParams();
 
-	const modoFromState = location.state?.modo || "crear"; // crear | editar
-	const registroFromState = location.state?.registro || null;
+	const locationState = location.state || {};
+	const modoFromState = locationState.modo;
+	const registroFromState = locationState.registro || null;
+	const derivedModo = modoProp || modoFromState || (params?.id ? "editar" : "crear");
+	const derivedRegistro = registroProp || registroFromState || null;
 
-	const [modo, setModo] = useState(modoFromState);
-	const [registro, setRegistro] = useState(registroFromState);
+	const [modo, setModo] = useState(derivedModo);
+	const [registro, setRegistro] = useState(derivedRegistro);
 
 	const [step, setStep] = useState(1);
 	const [loading, setLoading] = useState(false);
@@ -45,6 +48,16 @@ export default function IngresoCalificacion({ onCreated }) {
 	const [factors, setFactors] = useState(makeDefaultFactors());
 	const [montos, setMontos] = useState(makeDefaultMontos());
 
+	const openedViaProps = Boolean(modoProp || registroProp || onSaved);
+
+	useEffect(() => {
+		setModo(derivedModo);
+	}, [derivedModo]);
+
+	useEffect(() => {
+		setRegistro(derivedRegistro);
+	}, [derivedRegistro]);
+
 	// ========= SI VIENES POR RUTA /ingreso/:id, CARGA DESDE API =========
 	useEffect(() => {
 		const id = params?.id;
@@ -58,7 +71,7 @@ export default function IngresoCalificacion({ onCreated }) {
 			} catch (e) {
 				console.error(e);
 				alert("No se pudo cargar la calificación a editar");
-				navigate("/listado");
+				navigate("/dashboard");
 			}
 		})();
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -178,16 +191,19 @@ export default function IngresoCalificacion({ onCreated }) {
 	async function handleSave() {
 		setLoading(true);
 		try {
+			const payload = { ...form, montos, factors };
 			if (modo === "editar") {
 				const id = registro?.id ?? params?.id;
-				await actualizarCalificacion(id, { ...form, montos, factors });
+				await actualizarCalificacion(id, payload);
+				alert("Calificación actualizada correctamente");
+				onSaved?.();
+				if (!openedViaProps) navigate("/dashboard");
 			} else {
-				await crearCalificacion({ ...form, montos, factors });
+				await crearCalificacion(payload);
+				alert("Calificación guardada correctamente");
+				onCreated?.();
+				if (!openedViaProps) navigate("/dashboard");
 			}
-
-			alert("Calificación guardada correctamente");
-			onCreated?.();
-			navigate("/listado");
 		} catch (err) {
 			console.error(err);
 			alert("Error al guardar la calificación");

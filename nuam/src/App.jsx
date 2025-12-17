@@ -7,6 +7,7 @@ import Login from "./views/Login.jsx";
 import Register from "./views/Register.jsx";
 import IngresoCalificacion from "./views/IngresoCalificacion.jsx";
 import ModalVerCalificacion from "./components/modals/ModalVerCalificacion";
+import ModalEditarCalificacion from "./components/modals/ModalEditarCalificacion.jsx";
 import { obtenerCalificaciones, eliminarCalificacion } from "./services/CalificacionesService";
 
 const sidebarItems = [
@@ -30,6 +31,7 @@ function DashboardPage() {
   const [showCargaFactores, setShowCargaFactores] = useState(false);
   const [showCargaMontos, setShowCargaMontos] = useState(false);
   const [verRegistro, setVerRegistro] = useState(null);
+  const [editando, setEditando] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -66,23 +68,26 @@ function DashboardPage() {
     setLoading(false);
   };
 
-  const handleDelete = async (row) => {
-  const target = row || selected;
-  if (!target) {
-    alert("Selecciona un registro para eliminar");
-    return;
-  }
-  await eliminarCalificacion(target.id);
-  await recargar();
-  setSelected(null);
-};
+  const handleDelete = async row => {
+    const target = row || selected;
+    if (!target) {
+      alert("Selecciona un registro para eliminar");
+      return;
+    }
+    await eliminarCalificacion(target.id);
+    await recargar();
+    setSelected(null);
+    setVerRegistro(null);
+    setEditando(null);
+  };
 
   const handleModificar = () => {
     if (!selected) {
       alert("Selecciona un registro para modificar");
       return;
     }
-    navigate("/calificaciones/ingreso", { state: { registro: selected } });
+    setVerRegistro(null);
+    setEditando(selected);
   };
 
   return (
@@ -195,6 +200,17 @@ function DashboardPage() {
       )}
       {showCargaMontos && (
         <CargaModal title="Carga de Calificaciones (Montos)" onClose={() => setShowCargaMontos(false)} />
+      )}
+
+      {editando && (
+        <ModalEditarCalificacion
+          registro={editando}
+          onClose={() => setEditando(null)}
+          onSaved={() => {
+            setEditando(null);
+            recargar();
+          }}
+        />
       )}
 
       {loading && <div className="badge">Cargando...</div>}
