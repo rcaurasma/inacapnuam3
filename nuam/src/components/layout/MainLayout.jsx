@@ -12,11 +12,11 @@ export default function MainLayout({
 	onLogin,
 	onRegister,
 	onLogout,
-	children,
 }) {
 	return (
 		<div className="app-shell">
 			<Sidebar items={sidebarItems} active={active} />
+
 			<div className="layout-content">
 				<Header
 					user={user}
@@ -25,7 +25,11 @@ export default function MainLayout({
 					onRegister={onRegister}
 					onLogout={onLogout}
 				/>
-				<main className="page">{children || <Outlet />}</main>
+
+				<main className="page">
+					<Outlet />
+				</main>
+
 				<Footer />
 			</div>
 		</div>
