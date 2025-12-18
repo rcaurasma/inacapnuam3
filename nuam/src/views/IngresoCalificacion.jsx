@@ -1,5 +1,5 @@
 // src/views/IngresoCalificacion.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
 	crearCalificacion,
@@ -98,19 +98,7 @@ export default function IngresoCalificacion({ modo: modoProp, registro: registro
 		setMontos((registro.montos && registro.montos.length ? registro.montos : makeDefaultMontos()));
 	}, [modo, registro]);
 
-	// ================== CALCULOS ==================
-	const totalCalculado = useMemo(
-		() =>
-			factors
-				.filter(f => f.id >= 8 && f.id <= 19)
-				.reduce((acc, f) => acc + Number(f.calculado || 0), 0),
-		[factors]
-	);
-
-	const totalMontos = useMemo(
-		() => montos.reduce((acc, m) => acc + Number(m.valor || 0), 0),
-		[montos]
-	);
+// ================== CALCULOS ==================
 
 	function handleChange(e) {
 		const { name, value, type, checked } = e.target;
@@ -125,20 +113,68 @@ export default function IngresoCalificacion({ modo: modoProp, registro: registro
 
 	function updateFactor(id, value) {
 		setFactors(prev =>
-			prev.map(f => (f.id === id ? { ...f, calculado: value === "" ? "" : Number(value) } : f))
+			prev.map(f => {
+				if (f.id !== id) return f;
+				// Factors >=20 must keep calculado at 0 regardless of user input
+				if (f.id >= 20) return { ...f, calculado: 0 };
+				return { ...f, calculado: value === "" ? "" : Number(value) };
+			})
 		);
 	}
 
 	function calcularFactoresDesdeMontos() {
-		const total = totalMontos || 1;
+		// Sum only montos for factors 8..19
+		const baseMontos = montos.filter(m => m.id >= 8 && m.id <= 19);
+		const totalBase = baseMontos.reduce((acc, m) => acc + Number(m.valor || 0), 0);
 
-		setFactors(prev =>
-			prev.map(f => {
+		setFactors(prev => {
+			// prepare raw proportions for 8..19
+			const rawMap = new Map();
+			for (const f of prev) {
 				const monto = montos.find(m => m.id === f.id)?.valor || 0;
-				const calculado = total ? monto / total : 0;
-				return { ...f, calculado: Number(calculado.toFixed(8)), original: monto };
-			})
-		);
+				if (f.id >= 8 && f.id <= 19) {
+					rawMap.set(f.id, totalBase > 0 ? Number(monto) / totalBase : 0);
+				} else {
+					rawMap.set(f.id, 0);
+				}
+			}
+
+			// round to 8 decimals and correct rounding error so sum(8..19) === 1
+			const roundedMap = new Map();
+			let sumRounded = 0;
+			for (const [id, raw] of rawMap.entries()) {
+				const rounded = Number(raw.toFixed(8));
+				roundedMap.set(id, rounded);
+				if (id >= 8 && id <= 19) sumRounded += rounded;
+			}
+
+			let diff = 0;
+			if (totalBase > 0) {
+				diff = Number((1 - sumRounded).toFixed(8));
+				if (Math.abs(diff) > 0) {
+					// add diff to the factor with the largest raw proportion among 8..19 (or first non-zero)
+					let targetId = null;
+					let maxRaw = -Infinity;
+					for (const [id, raw] of rawMap.entries()) {
+						if (id >= 8 && id <= 19 && raw > maxRaw) {
+							maxRaw = raw;
+							targetId = id;
+						}
+					}
+					if (targetId !== null) {
+						roundedMap.set(targetId, Number((roundedMap.get(targetId) + diff).toFixed(8)));
+					}
+				}
+			}
+
+			return prev.map(f => {
+				const monto = montos.find(m => m.id === f.id)?.valor || 0;
+				const calculado = roundedMap.has(f.id) ? roundedMap.get(f.id) : 0;
+				// Ensure factors >=20 keep calculado 0
+				if (f.id >= 20) return { ...f, calculado: 0, original: monto };
+				return { ...f, calculado: Number(calculado), original: monto };
+			});
+		});
 	}
 
 	// ================== NAVEGACIÓN ==================
@@ -179,7 +215,7 @@ export default function IngresoCalificacion({ modo: modoProp, registro: registro
 				return;
 			}
 
-			for (const f of factors) {
+			for (const f of factors.filter(f => f.id >= 8 && f.id <= 19)) {
 				if (!validarFormatoFactor(String(f.calculado))) {
 					alert(`Formato inválido en ${f.label}`);
 					return;
@@ -324,6 +360,7 @@ export default function IngresoCalificacion({ modo: modoProp, registro: registro
 												step="0.00000001"
 												value={f.calculado ?? 0}
 												onChange={e => updateFactor(f.id, e.target.value)}
+												disabled={f.id >= 20}
 											/>
 										</td>
 									</tr>
