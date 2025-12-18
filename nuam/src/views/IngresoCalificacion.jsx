@@ -100,7 +100,10 @@ export default function IngresoCalificacion({ modo: modoProp, registro: registro
 
 	// ================== CALCULOS ==================
 	const totalCalculado = useMemo(
-		() => factors.reduce((acc, f) => acc + Number(f.calculado || 0), 0),
+		() =>
+			factors
+				.filter(f => f.id >= 8 && f.id <= 19)
+				.reduce((acc, f) => acc + Number(f.calculado || 0), 0),
 		[factors]
 	);
 

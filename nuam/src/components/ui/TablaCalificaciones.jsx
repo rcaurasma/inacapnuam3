@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 
-const factorHeaders = Array.from({ length: 30 }, (_, i) => i + 8);
+const factorHeaders = Array.from({ length: 12 }, (_, i) => i + 8);
 
 function formatDateOnly(value) {
   if (!value) return "-";
@@ -27,7 +27,7 @@ export default function TablaCalificaciones({
   onDelete,
   selectedFactor = "all",
 }) {
-  const factorLabel = selectedFactor === "all" ? "Σ F8-F37" : `F${selectedFactor}`;
+  const factorLabel = selectedFactor === "all" ? "Σ F8-F19" : `F${selectedFactor}`;
 
   const columns = useMemo(
     () => [
