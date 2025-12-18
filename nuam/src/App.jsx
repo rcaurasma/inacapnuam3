@@ -94,7 +94,7 @@ function DashboardPage() {
   return (
     <>
       <div className="hero">
-        <h1>Mantenedor de calificaciones</h1>
+        <h1>Mantenedor de calificaciones tributarias</h1>
         <span className="badge">Versión base</span>
       </div>
 
