@@ -18,7 +18,9 @@ export default function ListadoCalificaciones() {
   }
 
   useEffect(() => {
-    cargar();
+    (async () => {
+      await cargar();
+    })();
   }, []);
 
   function editar(row) {

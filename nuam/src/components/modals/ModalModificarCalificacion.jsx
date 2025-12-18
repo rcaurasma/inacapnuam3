@@ -38,6 +38,7 @@ export default function ModalModificarCalificacion({ registro, onClose, onSaved 
       onSaved();
       onClose();
     } catch (e) {
+      console.error(e);
       alert("Error al actualizar");
     } finally {
       setLoading(false);

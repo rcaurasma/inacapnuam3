@@ -9,6 +9,7 @@ import IngresoCalificacion from "./views/IngresoCalificacion.jsx";
 import ModalVerCalificacion from "./components/modals/ModalVerCalificacion";
 import ModalEditarCalificacion from "./components/modals/ModalEditarCalificacion.jsx";
 import { obtenerCalificaciones, eliminarCalificacion } from "./services/CalificacionesService";
+import { leerCSV } from "./services/CSVReader";
 
 const sidebarItems = [
   { id: "/dashboard", label: "Dashboard", icon: "📊", path: "/dashboard" },
@@ -228,6 +229,25 @@ function PlaceholderPage({ title }) {
 }
 
 function CargaModal({ title, onClose }) {
+  const [file, setFile] = useState(null);
+  const [registros, setRegistros] = useState(null);
+
+  async function handleUpload() {
+    if (!file) {
+      alert("Selecciona un archivo CSV primero");
+      return;
+    }
+
+    try {
+      const data = await leerCSV(file);
+      console.log("CSV parsed:", data);
+      setRegistros(data);
+    } catch (err) {
+      console.error(err);
+      alert("Error leyendo CSV");
+    }
+  }
+
   return (
     <div className="table-card" style={{ marginTop: 16 }}>
       <div className="actions-row" style={{ justifyContent: "space-between" }}>
@@ -237,7 +257,7 @@ function CargaModal({ title, onClose }) {
       <div className="filters-grid">
         <div>
           <label>Archivo CSV</label>
-          <input className="input" type="file" accept=".csv" />
+          <input className="input" type="file" accept=".csv" onChange={e => setFile(e.target.files?.[0] ?? null)} />
         </div>
         <div>
           <label>Especificación</label>
@@ -245,8 +265,36 @@ function CargaModal({ title, onClose }) {
         </div>
       </div>
       <div className="table-card" style={{ marginTop: 12 }}>
-        <p style={{ color: "#5b6570" }}>Previsualización pendiente de carga.</p>
-        <button className="btn primary">Subir archivo</button>
+        {!registros ? (
+          <>
+            <p style={{ color: "#5b6570" }}>Previsualización pendiente de carga.</p>
+            <button className="btn primary" onClick={handleUpload}>Subir archivo</button>
+          </>
+        ) : (
+          <div>
+            <p style={{ color: "#5b6570" }}>Previsualización:</p>
+            <div style={{ maxHeight: 300, overflow: "auto" }}>
+              <table className="table" style={{ width: "100%" }}>
+                <thead>
+                  <tr>
+                    {Object.keys(registros[0] || {}).map((k) => (
+                      <th key={k}>{k}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {registros.map((r, i) => (
+                    <tr key={i}>
+                      {Object.values(r).map((v, j) => (
+                        <td key={j}>{String(v)}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
