@@ -8,7 +8,7 @@ import Register from "./views/Register.jsx";
 import IngresoCalificacion from "./views/IngresoCalificacion.jsx";
 import ModalVerCalificacion from "./components/modals/ModalVerCalificacion";
 import ModalEditarCalificacion from "./components/modals/ModalEditarCalificacion.jsx";
-import { obtenerCalificaciones, eliminarCalificacion } from "./services/CalificacionesService";
+import { obtenerCalificaciones, eliminarCalificacion, crearCalificacion } from "./services/CalificacionesService";
 import { leerCSV } from "./services/CSVReader";
 
 const sidebarItems = [
@@ -197,10 +197,10 @@ function DashboardPage() {
       )}
 
       {showCargaFactores && (
-        <CargaModal title="Carga de Calificaciones (Factores)" onClose={() => setShowCargaFactores(false)} />
+        <CargaModal title="Carga de Calificaciones (Factores)" onClose={() => setShowCargaFactores(false)} onUploaded={recargar} />
       )}
       {showCargaMontos && (
-        <CargaModal title="Carga de Calificaciones (Montos)" onClose={() => setShowCargaMontos(false)} />
+        <CargaModal title="Carga de Calificaciones (Montos)" onClose={() => setShowCargaMontos(false)} onUploaded={recargar} />
       )}
 
       {editando && (
@@ -228,7 +228,7 @@ function PlaceholderPage({ title }) {
   );
 }
 
-function CargaModal({ title, onClose }) {
+function CargaModal({ title, onClose, onUploaded }) {
   const [file, setFile] = useState(null);
   const [registros, setRegistros] = useState(null);
 
@@ -277,21 +277,99 @@ function CargaModal({ title, onClose }) {
               <table className="table" style={{ width: "100%" }}>
                 <thead>
                   <tr>
-                    {Object.keys(registros[0] || {}).map((k) => (
-                      <th key={k}>{k}</th>
-                    ))}
+                    {
+                      (() => {
+                        const desired = ["Ejercicio","Instrumento","Fecha Pago","Descripción","Secuencia","ISFUT","Mercado","Origen","Actualizado","Acciones"];
+                        const first = registros[0] || {};
+                        const others = Object.keys(first).filter(k => !desired.includes(k));
+                        const headers = desired.filter(k => Object.prototype.hasOwnProperty.call(first, k)).concat(others);
+                        return headers.map(k => <th key={k}>{k}</th>);
+                      })()
+                    }
                   </tr>
                 </thead>
                 <tbody>
-                  {registros.map((r, i) => (
-                    <tr key={i}>
-                      {Object.values(r).map((v, j) => (
-                        <td key={j}>{String(v)}</td>
-                      ))}
-                    </tr>
-                  ))}
+                  {registros.map((r, i) => {
+                    const desired = ["Ejercicio","Instrumento","Fecha Pago","Descripción","Secuencia","ISFUT","Mercado","Origen","Actualizado","Acciones"];
+                    const first = registros[0] || {};
+                    const others = Object.keys(first).filter(k => !desired.includes(k));
+                    const headers = desired.filter(k => Object.prototype.hasOwnProperty.call(first, k)).concat(others);
+                    return (
+                      <tr key={i}>
+                        {headers.map((h, j) => (
+                          <td key={j}>{String(r[h] ?? "")}</td>
+                        ))}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
+            </div>
+
+            <div style={{ marginTop: 12, display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button className="btn" onClick={() => setRegistros(null)}>Volver</button>
+              <button
+                className="btn primary"
+                onClick={async () => {
+                  // Map CSV rows to API payloads and create calificaciones
+                  try {
+                    for (const row of registros) {
+                      const payload = {};
+
+                      // basic fields mapping (case-insensitive)
+                      const mapField = (names) => {
+                        for (const n of names) {
+                          if (row[n] !== undefined) return row[n];
+                        }
+                        return undefined;
+                      };
+
+                      payload.anioComercial = mapField(["Ejercicio", "ejercicio", "anio", "anioComercial"] ) || undefined;
+                      payload.instrumento = mapField(["Instrumento", "instrumento", "rut", "nombre"] ) || undefined;
+                      payload.fechaPago = mapField(["Fecha Pago", "fechaPago", "fecha", "fecha_pago"] ) || undefined;
+                      payload.descripcion = mapField(["Descripción", "Descripcion", "descripcion"] ) || undefined;
+                      payload.secuenciaEvento = mapField(["Secuencia", "secuencia", "secuenciaEvento"] ) || undefined;
+                      const isf = mapField(["ISFUT", "isfut", "acogidoIsfut"] );
+                      payload.acogidoIsfut = isf === undefined ? false : (String(isf).toLowerCase() === "true" || Number(isf) === 1);
+                      payload.mercado = mapField(["Mercado", "mercado"] ) || undefined;
+                      payload.origen = mapField(["Origen", "origen"] ) || "Operador";
+
+                      // detect montos for factors 8-37
+                      const montos = [];
+                      for (const key of Object.keys(row)) {
+                        const m = key.match(/(?:factor\s*|f)?(\d{1,2})$/i);
+                        if (m) {
+                          const id = Number(m[1]);
+                          if (id >= 8 && id <= 37) {
+                            const val = Number(row[key]) || 0;
+                            montos.push({ id, valor: val });
+                          }
+                        }
+                        // also numeric headers like '8','9'
+                        const numKey = Number(key);
+                        if (!isNaN(numKey) && numKey >= 8 && numKey <= 37) {
+                          const val = Number(row[key]) || 0;
+                          if (!montos.some(mm => mm.id === numKey)) montos.push({ id: numKey, valor: val });
+                        }
+                      }
+
+                      if (montos.length) payload.montos = montos;
+
+                      // create calificacion (API will accept extra undefined fields)
+                      await crearCalificacion(payload);
+                    }
+
+                    alert("Carga subida con éxito");
+                    onClose();
+                    if (typeof onUploaded === "function") onUploaded();
+                  } catch (err) {
+                    console.error(err);
+                    alert("Error al subir carga");
+                  }
+                }}
+              >
+                Confirmar carga
+              </button>
             </div>
           </div>
         )}
