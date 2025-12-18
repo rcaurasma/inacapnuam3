@@ -172,7 +172,7 @@ export default function IngresoCalificacion({ modo: modoProp, registro: registro
 			);
 
 			if (!validarSumaFactores(factoresObj)) {
-				alert("La suma de los factores (8 al 37) debe ser igual a 1");
+				alert("La suma de los factores base (8 al 19) no puede superar 1");
 				return;
 			}
 
@@ -330,7 +330,12 @@ export default function IngresoCalificacion({ modo: modoProp, registro: registro
 					</div>
 
 					<div style={{ marginTop: 10, fontWeight: 600 }}>
-						Suma factores (8–37): {totalCalculado.toFixed(6)}
+						Suma factores base (8–19): {
+							factors
+								.filter(f => f.id >= 8 && f.id <= 19)
+								.reduce((acc, f) => acc + Number(f.calculado || 0), 0)
+								.toFixed(6)
+						}
 					</div>
 
 					<div className="actions-row" style={{ justifyContent: "space-between" }}>
